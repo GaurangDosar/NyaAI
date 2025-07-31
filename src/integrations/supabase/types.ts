@@ -14,7 +14,235 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      chat_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          role: string
+          session_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          role: string
+          session_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          role?: string
+          session_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_messages_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "chat_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      chat_sessions: {
+        Row: {
+          created_at: string
+          id: string
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      documents: {
+        Row: {
+          created_at: string
+          file_path: string
+          file_size: number | null
+          file_type: string | null
+          filename: string
+          id: string
+          status: string | null
+          summary: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          file_path: string
+          file_size?: number | null
+          file_type?: string | null
+          filename: string
+          id?: string
+          status?: string | null
+          summary?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          file_path?: string
+          file_size?: number | null
+          file_type?: string | null
+          filename?: string
+          id?: string
+          status?: string | null
+          summary?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      government_schemes: {
+        Row: {
+          application_process: string | null
+          benefits: string
+          category: string | null
+          created_at: string
+          description: string
+          eligibility_criteria: Json
+          id: string
+          is_active: boolean | null
+          name: string
+          state: string | null
+        }
+        Insert: {
+          application_process?: string | null
+          benefits: string
+          category?: string | null
+          created_at?: string
+          description: string
+          eligibility_criteria: Json
+          id?: string
+          is_active?: boolean | null
+          name: string
+          state?: string | null
+        }
+        Update: {
+          application_process?: string | null
+          benefits?: string
+          category?: string | null
+          created_at?: string
+          description?: string
+          eligibility_criteria?: Json
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          state?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          availability: boolean | null
+          created_at: string
+          email: string
+          experience_years: number | null
+          id: string
+          license_number: string | null
+          location: string | null
+          name: string
+          phone: string | null
+          role: string
+          specialization: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          availability?: boolean | null
+          created_at?: string
+          email: string
+          experience_years?: number | null
+          id?: string
+          license_number?: string | null
+          location?: string | null
+          name: string
+          phone?: string | null
+          role: string
+          specialization?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          availability?: boolean | null
+          created_at?: string
+          email?: string
+          experience_years?: number | null
+          id?: string
+          license_number?: string | null
+          location?: string | null
+          name?: string
+          phone?: string | null
+          role?: string
+          specialization?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      scheme_applications: {
+        Row: {
+          age: number
+          applicant_name: string
+          created_at: string
+          gender: string
+          id: string
+          income: number | null
+          location: string | null
+          occupation: string | null
+          scheme_id: string
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          age: number
+          applicant_name: string
+          created_at?: string
+          gender: string
+          id?: string
+          income?: number | null
+          location?: string | null
+          occupation?: string | null
+          scheme_id: string
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          age?: number
+          applicant_name?: string
+          created_at?: string
+          gender?: string
+          id?: string
+          income?: number | null
+          location?: string | null
+          occupation?: string | null
+          scheme_id?: string
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scheme_applications_scheme_id_fkey"
+            columns: ["scheme_id"]
+            isOneToOne: false
+            referencedRelation: "government_schemes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
