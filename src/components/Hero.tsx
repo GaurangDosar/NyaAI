@@ -1,20 +1,32 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Sparkles, Shield, Brain } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const Hero = () => {
+  const navigate = useNavigate();
+
   return (
-    <section id="home" className="relative min-h-screen flex items-center justify-center overflow-hidden cyber-grid">
-      {/* Background Effects */}
-      <div className="absolute inset-0 bg-gradient-glow opacity-50" />
+    <section id="home" className="relative min-h-screen flex items-center justify-center overflow-hidden">
+      {/* Spline 3D Background */}
+      <div className="absolute inset-0 z-0">
+        <iframe 
+          src="https://my.spline.design/worldplanet-CMjrskBh7SPlIOLUf4luIIay/" 
+          frameBorder="0" 
+          width="100%" 
+          height="100%"
+          className="w-full h-full"
+        />
+      </div>
+      <div className="absolute inset-0 bg-background/80 z-[1]" />
       
       {/* Floating Elements */}
-      <div className="absolute top-20 left-10 opacity-20">
+      <div className="absolute top-20 left-10 opacity-20 z-[2]">
         <Shield className="h-12 w-12 text-primary animate-float" style={{ animationDelay: '0s' }} />
       </div>
-      <div className="absolute top-40 right-20 opacity-20">
+      <div className="absolute top-40 right-20 opacity-20 z-[2]">
         <Brain className="h-16 w-16 text-accent animate-float" style={{ animationDelay: '1s' }} />
       </div>
-      <div className="absolute bottom-40 left-20 opacity-20">
+      <div className="absolute bottom-40 left-20 opacity-20 z-[2]">
         <Sparkles className="h-10 w-10 text-primary-glow animate-float" style={{ animationDelay: '2s' }} />
       </div>
 
@@ -61,11 +73,11 @@ const Hero = () => {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Button variant="hero" size="xl" className="group">
+            <Button variant="hero" size="xl" className="group" onClick={() => navigate('/auth')}>
               Get Started Free
               <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
             </Button>
-            <Button variant="neon" size="xl">
+            <Button variant="neon" size="xl" onClick={() => navigate('/auth')}>
               Watch Demo
             </Button>
           </div>

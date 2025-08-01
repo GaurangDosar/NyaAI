@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Menu, X, Scale, Shield, Brain, Users } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const navigate = useNavigate();
 
   const navItems = [
     { name: "Home", href: "#home" },
@@ -42,10 +44,10 @@ const Navigation = () => {
 
           {/* Desktop Auth Buttons */}
           <div className="hidden md:flex items-center space-x-4">
-            <Button variant="ghost" size="sm">
+            <Button variant="ghost" size="sm" onClick={() => navigate('/auth')}>
               Login
             </Button>
-            <Button variant="hero" size="sm">
+            <Button variant="hero" size="sm" onClick={() => navigate('/auth')}>
               Sign Up
             </Button>
           </div>
@@ -77,10 +79,10 @@ const Navigation = () => {
               </a>
             ))}
             <div className="flex flex-col space-y-2 pt-4 px-3">
-              <Button variant="ghost" size="sm" className="w-full">
+              <Button variant="ghost" size="sm" className="w-full" onClick={() => navigate('/auth')}>
                 Login
               </Button>
-              <Button variant="hero" size="sm" className="w-full">
+              <Button variant="hero" size="sm" className="w-full" onClick={() => navigate('/auth')}>
                 Sign Up
               </Button>
             </div>
