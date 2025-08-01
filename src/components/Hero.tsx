@@ -17,7 +17,7 @@ const Hero = () => {
           className="w-full h-full"
         />
       </div>
-      <div className="absolute inset-0 bg-background/80 z-[1]" />
+      <div className="absolute inset-0 bg-background/10 z-[1]" />
       
       {/* Floating Elements */}
       <div className="absolute top-20 left-10 opacity-20 z-[2]">
