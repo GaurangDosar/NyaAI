@@ -19,7 +19,18 @@ const UserDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5">
+    <div className="relative min-h-screen overflow-hidden">
+      {/* Spline 3D Background */}
+      <div className="absolute inset-0 z-0">
+        <iframe 
+          src="https://my.spline.design/worldplanet-CMjrskBh7SPlIOLUf4luIIay/" 
+          frameBorder="0" 
+          width="100%" 
+          height="100%"
+          className="w-full h-full"
+        />
+      </div>
+      <div className="absolute inset-0 bg-background/10 z-[1]" />
       <Navigation />
       
       <div className="container mx-auto px-4 pt-24 pb-8">

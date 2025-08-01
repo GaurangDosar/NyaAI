@@ -14,6 +14,9 @@ interface Profile {
   license_number?: string;
   experience_years?: number;
   availability?: boolean;
+  court_level?: string;
+  bar_association?: string;
+  practice_areas?: string;
 }
 
 interface AuthContextType {
@@ -21,7 +24,7 @@ interface AuthContextType {
   profile: Profile | null;
   session: Session | null;
   loading: boolean;
-  signUp: (email: string, password: string, userData: { name: string; role: 'user' | 'lawyer' }) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, userData: any) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   updateProfile: (updates: Partial<Profile>) => Promise<{ error: any }>;
@@ -106,7 +109,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (email: string, password: string, userData: { name: string; role: 'user' | 'lawyer' }) => {
+  const signUp = async (email: string, password: string, userData: any) => {
     try {
       const redirectUrl = `${window.location.origin}/`;
       
@@ -126,14 +129,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       // Create profile if user was created
       if (data.user) {
+        const profileData = {
+          user_id: data.user.id,
+          name: userData.name,
+          email: email,
+          role: userData.role,
+          phone: userData.phone,
+          location: userData.location,
+          specialization: userData.specialization,
+          license_number: userData.license_number,
+          experience_years: userData.experience_years,
+          court_level: userData.court_level,
+          bar_association: userData.bar_association,
+          practice_areas: userData.practice_areas
+        };
+
         const { error: profileError } = await supabase
           .from('profiles')
-          .insert({
-            user_id: data.user.id,
-            name: userData.name,
-            email: email,
-            role: userData.role
-          });
+          .insert(profileData);
 
         if (profileError) {
           console.error('Profile creation error:', profileError);

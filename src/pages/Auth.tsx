@@ -7,8 +7,9 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
-import { Scale, UserCheck, Briefcase } from 'lucide-react';
+import { Scale, UserCheck, Briefcase, Home } from 'lucide-react';
 
 const Auth = () => {
   const { signIn, signUp, user } = useAuth();
@@ -33,7 +34,16 @@ const Auth = () => {
     email: '',
     password: '',
     confirmPassword: '',
-    role: 'user' as 'user' | 'lawyer'
+    role: 'user' as 'user' | 'lawyer',
+    // Lawyer specific fields
+    licenseNumber: '',
+    specialization: '',
+    experienceYears: '',
+    courtLevel: '',
+    barAssociation: '',
+    practiceAreas: '',
+    phone: '',
+    location: ''
   });
 
   const handleSignIn = async (e: React.FormEvent) => {
@@ -92,10 +102,24 @@ const Auth = () => {
     }
 
     try {
-      const { error } = await signUp(signUpData.email, signUpData.password, {
+      const profileData: any = {
         name: signUpData.name,
-        role: signUpData.role
-      });
+        role: signUpData.role,
+        phone: signUpData.phone,
+        location: signUpData.location
+      };
+
+      // Add lawyer-specific data if role is lawyer
+      if (signUpData.role === 'lawyer') {
+        profileData.license_number = signUpData.licenseNumber;
+        profileData.specialization = signUpData.specialization;
+        profileData.experience_years = signUpData.experienceYears ? parseInt(signUpData.experienceYears) : undefined;
+        profileData.court_level = signUpData.courtLevel;
+        profileData.bar_association = signUpData.barAssociation;
+        profileData.practice_areas = signUpData.practiceAreas;
+      }
+
+      const { error } = await signUp(signUpData.email, signUpData.password, profileData);
       
       if (error) {
         toast({
@@ -121,8 +145,30 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <div className="relative min-h-screen flex items-center justify-center p-4 overflow-hidden">
+      {/* Spline 3D Background */}
+      <div className="absolute inset-0 z-0">
+        <iframe 
+          src="https://my.spline.design/worldplanet-CMjrskBh7SPlIOLUf4luIIay/" 
+          frameBorder="0" 
+          width="100%" 
+          height="100%"
+          className="w-full h-full"
+        />
+      </div>
+      <div className="absolute inset-0 bg-background/10 z-[1]" />
+      
+      {/* Home Button */}
+      <Button 
+        variant="ghost" 
+        size="sm" 
+        className="absolute top-4 left-4 z-10 glass border border-border/50 text-foreground hover:text-primary"
+        onClick={() => navigate('/')}
+      >
+        <Home className="h-4 w-4 mr-2" />
+        Home
+      </Button>
+      <div className="relative z-10 w-full max-w-md">
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-4">
             <Scale className="h-8 w-8 text-primary" />
@@ -245,12 +291,129 @@ const Auth = () => {
                       placeholder="Confirm your password"
                       value={signUpData.confirmPassword}
                       onChange={(e) => setSignUpData(prev => ({ ...prev, confirmPassword: e.target.value }))}
-                      required
-                    />
-                  </div>
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading ? 'Creating Account...' : 'Create Account'}
-                  </Button>
+                     required
+                     />
+                   </div>
+
+                   {/* Lawyer-specific fields */}
+                   {signUpData.role === 'lawyer' && (
+                     <>
+                       <div className="space-y-4 border-t border-border/50 pt-4 mt-4">
+                         <h3 className="text-lg font-semibold text-foreground">Professional Details</h3>
+                         
+                         <div className="grid grid-cols-2 gap-3">
+                           <div className="space-y-2">
+                             <Label htmlFor="license-number">License Number *</Label>
+                             <Input
+                               id="license-number"
+                               type="text"
+                               placeholder="Bar License No."
+                               value={signUpData.licenseNumber}
+                               onChange={(e) => setSignUpData(prev => ({ ...prev, licenseNumber: e.target.value }))}
+                               required
+                             />
+                           </div>
+                           <div className="space-y-2">
+                             <Label htmlFor="experience">Experience (Years)</Label>
+                             <Input
+                               id="experience"
+                               type="number"
+                               placeholder="Years"
+                               value={signUpData.experienceYears}
+                               onChange={(e) => setSignUpData(prev => ({ ...prev, experienceYears: e.target.value }))}
+                             />
+                           </div>
+                         </div>
+
+                         <div className="space-y-2">
+                           <Label htmlFor="specialization">Primary Specialization *</Label>
+                           <Select value={signUpData.specialization} onValueChange={(value) => setSignUpData(prev => ({ ...prev, specialization: value }))}>
+                             <SelectTrigger>
+                               <SelectValue placeholder="Select specialization" />
+                             </SelectTrigger>
+                             <SelectContent>
+                               <SelectItem value="criminal">Criminal Law</SelectItem>
+                               <SelectItem value="civil">Civil Law</SelectItem>
+                               <SelectItem value="corporate">Corporate Law</SelectItem>
+                               <SelectItem value="family">Family Law</SelectItem>
+                               <SelectItem value="property">Property Law</SelectItem>
+                               <SelectItem value="labor">Labor Law</SelectItem>
+                               <SelectItem value="tax">Tax Law</SelectItem>
+                               <SelectItem value="immigration">Immigration Law</SelectItem>
+                               <SelectItem value="intellectual">Intellectual Property</SelectItem>
+                               <SelectItem value="environmental">Environmental Law</SelectItem>
+                             </SelectContent>
+                           </Select>
+                         </div>
+
+                         <div className="space-y-2">
+                           <Label htmlFor="court-level">Court Level Experience</Label>
+                           <Select value={signUpData.courtLevel} onValueChange={(value) => setSignUpData(prev => ({ ...prev, courtLevel: value }))}>
+                             <SelectTrigger>
+                               <SelectValue placeholder="Select court level" />
+                             </SelectTrigger>
+                             <SelectContent>
+                               <SelectItem value="district">District Court</SelectItem>
+                               <SelectItem value="sessions">Sessions Court</SelectItem>
+                               <SelectItem value="high">High Court</SelectItem>
+                               <SelectItem value="supreme">Supreme Court</SelectItem>
+                               <SelectItem value="tribunal">Tribunal</SelectItem>
+                               <SelectItem value="all">All Levels</SelectItem>
+                             </SelectContent>
+                           </Select>
+                         </div>
+
+                         <div className="grid grid-cols-2 gap-3">
+                           <div className="space-y-2">
+                             <Label htmlFor="phone">Phone Number</Label>
+                             <Input
+                               id="phone"
+                               type="tel"
+                               placeholder="Your contact number"
+                               value={signUpData.phone}
+                               onChange={(e) => setSignUpData(prev => ({ ...prev, phone: e.target.value }))}
+                             />
+                           </div>
+                           <div className="space-y-2">
+                             <Label htmlFor="location">City/Location</Label>
+                             <Input
+                               id="location"
+                               type="text"
+                               placeholder="Practice location"
+                               value={signUpData.location}
+                               onChange={(e) => setSignUpData(prev => ({ ...prev, location: e.target.value }))}
+                             />
+                           </div>
+                         </div>
+
+                         <div className="space-y-2">
+                           <Label htmlFor="bar-association">Bar Association</Label>
+                           <Input
+                             id="bar-association"
+                             type="text"
+                             placeholder="State Bar Council"
+                             value={signUpData.barAssociation}
+                             onChange={(e) => setSignUpData(prev => ({ ...prev, barAssociation: e.target.value }))}
+                           />
+                         </div>
+
+                         <div className="space-y-2">
+                           <Label htmlFor="practice-areas">Additional Practice Areas</Label>
+                           <Textarea
+                             id="practice-areas"
+                             placeholder="Other areas of practice (optional)"
+                             value={signUpData.practiceAreas}
+                             onChange={(e) => setSignUpData(prev => ({ ...prev, practiceAreas: e.target.value }))}
+                             rows={2}
+                           />
+                         </div>
+                       </div>
+                     </>
+                   )}
+
+                   <Button type="submit" className="w-full" disabled={loading}>
+                     {loading ? 'Creating Account...' : 'Create Account'}
+                   </Button>
                 </form>
               </TabsContent>
             </Tabs>
