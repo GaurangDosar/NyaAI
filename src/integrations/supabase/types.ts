@@ -14,134 +14,128 @@ export type Database = {
   }
   public: {
     Tables: {
-      chat_messages: {
+      chatbot_logs: {
         Row: {
-          content: string
-          created_at: string
+          created_at: string | null
           id: string
-          role: string
-          session_id: string
+          summary: string | null
+          user_id: string | null
         }
         Insert: {
-          content: string
-          created_at?: string
+          created_at?: string | null
           id?: string
-          role: string
-          session_id: string
+          summary?: string | null
+          user_id?: string | null
         }
         Update: {
-          content?: string
-          created_at?: string
+          created_at?: string | null
           id?: string
-          role?: string
-          session_id?: string
+          summary?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      contacts: {
+        Row: {
+          created_at: string | null
+          id: string
+          last_contacted: string | null
+          lawyer_id: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          last_contacted?: string | null
+          lawyer_id?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          last_contacted?: string | null
+          lawyer_id?: string | null
+          user_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "chat_messages_session_id_fkey"
-            columns: ["session_id"]
+            foreignKeyName: "contacts_lawyer_id_fkey"
+            columns: ["lawyer_id"]
             isOneToOne: false
-            referencedRelation: "chat_sessions"
+            referencedRelation: "lawyer_profiles"
             referencedColumns: ["id"]
           },
         ]
       }
-      chat_sessions: {
+      lawyer_profiles: {
         Row: {
-          created_at: string
+          bar_association: string | null
+          court_level: string | null
+          created_at: string | null
+          email: string
+          experience_years: number | null
           id: string
-          title: string | null
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          title?: string | null
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          title?: string | null
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      documents: {
-        Row: {
-          created_at: string
-          file_path: string
-          file_size: number | null
-          file_type: string | null
-          filename: string
-          id: string
-          status: string | null
-          summary: string | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          file_path: string
-          file_size?: number | null
-          file_type?: string | null
-          filename: string
-          id?: string
-          status?: string | null
-          summary?: string | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          file_path?: string
-          file_size?: number | null
-          file_type?: string | null
-          filename?: string
-          id?: string
-          status?: string | null
-          summary?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
-      government_schemes: {
-        Row: {
-          application_process: string | null
-          benefits: string
-          category: string | null
-          created_at: string
-          description: string
-          eligibility_criteria: Json
-          id: string
-          is_active: boolean | null
+          license_number: string | null
           name: string
-          state: string | null
+          practice_areas: string | null
+          profile_picture: string | null
+          rating: number | null
+          review_count: number | null
+          specialization: string | null
         }
         Insert: {
-          application_process?: string | null
-          benefits: string
-          category?: string | null
-          created_at?: string
-          description: string
-          eligibility_criteria: Json
-          id?: string
-          is_active?: boolean | null
+          bar_association?: string | null
+          court_level?: string | null
+          created_at?: string | null
+          email: string
+          experience_years?: number | null
+          id: string
+          license_number?: string | null
           name: string
-          state?: string | null
+          practice_areas?: string | null
+          profile_picture?: string | null
+          rating?: number | null
+          review_count?: number | null
+          specialization?: string | null
         }
         Update: {
-          application_process?: string | null
-          benefits?: string
-          category?: string | null
-          created_at?: string
-          description?: string
-          eligibility_criteria?: Json
+          bar_association?: string | null
+          court_level?: string | null
+          created_at?: string | null
+          email?: string
+          experience_years?: number | null
           id?: string
-          is_active?: boolean | null
+          license_number?: string | null
           name?: string
-          state?: string | null
+          practice_areas?: string | null
+          profile_picture?: string | null
+          rating?: number | null
+          review_count?: number | null
+          specialization?: string | null
+        }
+        Relationships: []
+      }
+      messages: {
+        Row: {
+          created_at: string | null
+          id: string
+          message: string
+          receiver_id: string | null
+          sender_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          message: string
+          receiver_id?: string | null
+          sender_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          message?: string
+          receiver_id?: string | null
+          sender_id?: string | null
         }
         Relationships: []
       }
@@ -193,55 +187,61 @@ export type Database = {
         }
         Relationships: []
       }
-      scheme_applications: {
+      ratings: {
         Row: {
-          age: number
-          applicant_name: string
-          created_at: string
-          gender: string
+          created_at: string | null
           id: string
-          income: number | null
-          location: string | null
-          occupation: string | null
-          scheme_id: string
-          status: string | null
-          user_id: string
+          lawyer_id: string | null
+          rating: number | null
+          review: string | null
+          user_id: string | null
         }
         Insert: {
-          age: number
-          applicant_name: string
-          created_at?: string
-          gender: string
+          created_at?: string | null
           id?: string
-          income?: number | null
-          location?: string | null
-          occupation?: string | null
-          scheme_id: string
-          status?: string | null
-          user_id: string
+          lawyer_id?: string | null
+          rating?: number | null
+          review?: string | null
+          user_id?: string | null
         }
         Update: {
-          age?: number
-          applicant_name?: string
-          created_at?: string
-          gender?: string
+          created_at?: string | null
           id?: string
-          income?: number | null
-          location?: string | null
-          occupation?: string | null
-          scheme_id?: string
-          status?: string | null
-          user_id?: string
+          lawyer_id?: string | null
+          rating?: number | null
+          review?: string | null
+          user_id?: string | null
         }
         Relationships: [
           {
-            foreignKeyName: "scheme_applications_scheme_id_fkey"
-            columns: ["scheme_id"]
+            foreignKeyName: "ratings_lawyer_id_fkey"
+            columns: ["lawyer_id"]
             isOneToOne: false
-            referencedRelation: "government_schemes"
+            referencedRelation: "lawyer_profiles"
             referencedColumns: ["id"]
           },
         ]
+      }
+      user_profiles: {
+        Row: {
+          created_at: string | null
+          email: string
+          id: string
+          name: string
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          id: string
+          name: string
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
       }
     }
     Views: {
