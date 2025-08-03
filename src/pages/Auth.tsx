@@ -170,14 +170,14 @@ const Auth = () => {
       </Button>
       <div className="relative z-10 w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <Scale className="h-8 w-8 text-primary" />
-            <span className="text-2xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-              LegalTech AI
+          <div className="flex items-center justify-center gap-3 mb-6">
+            <Scale className="h-16 w-16 text-primary drop-shadow-lg" />
+            <span className="text-6xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent drop-shadow-lg">
+              NyaAI
             </span>
           </div>
-          <h1 className="text-3xl font-bold mb-2">Welcome</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-5xl font-bold mb-4 text-foreground drop-shadow-lg">Welcome</h1>
+          <p className="text-xl text-foreground/90 font-medium drop-shadow">
             Empowering Justice Through AI
           </p>
         </div>

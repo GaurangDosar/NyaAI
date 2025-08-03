@@ -1,48 +1,17 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { Upload, FileText, Loader, CheckCircle, AlertCircle } from 'lucide-react';
 
-interface Document {
-  id: string;
-  filename: string;
-  status: 'processing' | 'completed' | 'failed';
-  summary?: string;
-  created_at: string;
-}
-
 const DocumentUpload = () => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [uploading, setUploading] = useState(false);
-  const [documents, setDocuments] = useState<Document[]>([]);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-
-  // Load user documents
-  React.useEffect(() => {
-    if (user) {
-      loadDocuments();
-    }
-  }, [user]);
-
-  const loadDocuments = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('documents')
-        .select('*')
-        .eq('user_id', user?.id)
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-      setDocuments((data || []) as Document[]);
-    } catch (error) {
-      console.error('Error loading documents:', error);
-    }
-  };
+  const [summary, setSummary] = useState<string>('');
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -89,76 +58,41 @@ const DocumentUpload = () => {
 
     setUploading(true);
     try {
-      // Upload file to Supabase Storage
-      const fileExt = selectedFile.name.split('.').pop();
-      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
-      
-      const { error: uploadError } = await supabase.storage
-        .from('documents')
-        .upload(fileName, selectedFile);
-
-      if (uploadError) throw uploadError;
-
       // Extract text content for processing
       const textContent = await extractTextFromFile(selectedFile);
 
-      // Save document record to database
-      const { data: document, error: dbError } = await supabase
-        .from('documents')
-        .insert({
-          user_id: user.id,
-          filename: selectedFile.name,
-          file_path: fileName,
-          file_size: selectedFile.size,
-          file_type: selectedFile.type,
-          status: 'processing'
-        })
-        .select()
-        .single();
-
-      if (dbError) throw dbError;
-
       // Call AI summarization function
-      const { data, error } = await supabase.functions.invoke('document-summarizer', {
-        body: {
-          documentId: document.id,
-          content: textContent
-        }
-      });
+      const { data, error } = await fetch('/api/summarize-document', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          content: textContent,
+          filename: selectedFile.name
+        })
+      }).then(res => res.json());
 
-      if (error) throw error;
+      if (error) throw new Error(error);
+
+      setSummary(data.summary || "Document processed successfully.");
 
       toast({
-        title: "Document Uploaded",
-        description: "Your document has been uploaded and is being processed.",
+        title: "Document Processed",
+        description: "Your document has been analyzed and summarized.",
       });
 
-      // Refresh documents list
-      await loadDocuments();
       setSelectedFile(null);
 
     } catch (error: any) {
       console.error('Upload error:', error);
       toast({
-        title: "Upload Failed",
-        description: error.message || "Failed to upload document.",
+        title: "Processing Failed",
+        description: error.message || "Failed to process document.",
         variant: "destructive"
       });
     } finally {
       setUploading(false);
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'processing':
-        return <Loader className="h-4 w-4 animate-spin text-yellow-500" />;
-      case 'completed':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
-      case 'failed':
-        return <AlertCircle className="h-4 w-4 text-red-500" />;
-      default:
-        return <FileText className="h-4 w-4" />;
     }
   };
 
@@ -209,43 +143,23 @@ const DocumentUpload = () => {
         </CardContent>
       </Card>
 
-      {/* Documents List */}
-      {documents.length > 0 && (
-        <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Your Documents</h3>
-          {documents.map((doc) => (
-            <Card key={doc.id}>
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start space-x-3">
-                    {getStatusIcon(doc.status)}
-                    <div>
-                      <h4 className="font-medium">{doc.filename}</h4>
-                      <p className="text-sm text-muted-foreground">
-                        Uploaded {new Date(doc.created_at).toLocaleDateString()}
-                      </p>
-                      {doc.summary && (
-                        <div className="mt-3 p-3 bg-muted rounded-lg">
-                          <h5 className="font-medium mb-2">AI Summary:</h5>
-                          <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                            {doc.summary}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  <span className={`text-xs px-2 py-1 rounded-full ${
-                    doc.status === 'completed' ? 'bg-green-100 text-green-800' :
-                    doc.status === 'processing' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-red-100 text-red-800'
-                  }`}>
-                    {doc.status}
-                  </span>
+      {/* Summary Display */}
+      {summary && (
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-start space-x-3">
+              <CheckCircle className="h-5 w-5 text-green-500 mt-1" />
+              <div className="flex-1">
+                <h4 className="font-medium mb-2">Document Summary</h4>
+                <div className="p-4 bg-muted rounded-lg">
+                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                    {summary}
+                  </p>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       )}
     </div>
   );

@@ -47,7 +47,7 @@ const Features = () => {
           </div>
           
           <h2 className="text-3xl md:text-5xl font-bold mb-6">
-            <span className="text-foreground">Advanced Legal Technology</span>
+            <span className="text-foreground">Advanced NyaAI Technology</span>
             <br />
             <span className="bg-gradient-primary bg-clip-text text-transparent">
               At Your Fingertips

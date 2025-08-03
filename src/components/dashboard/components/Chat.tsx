@@ -20,8 +20,8 @@ interface ChatProps {
 }
 
 const Chat: React.FC<ChatProps> = ({ selectedLawyer, selectedClient }) => {
-  const { user } = useAuth();
-  const userType = 'user'; // Simplified for now
+  const { user, profile } = useAuth();
+  const userType = profile?.role || 'user';
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(false);
