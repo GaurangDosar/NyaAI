@@ -2,10 +2,12 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Menu, X, Scale, Shield, Brain, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navigate = useNavigate();
+  const { user, signOut } = useAuth();
 
   const navItems = [
     { name: "Home", href: "#home" },
@@ -25,7 +27,7 @@ const Navigation = () => {
               <div className="absolute inset-0 h-8 w-8 text-primary/30 animate-glow-pulse" />
             </div>
             <span className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-              LegalAI
+              NyaAI
             </span>
           </div>
 
@@ -44,12 +46,25 @@ const Navigation = () => {
 
           {/* Desktop Auth Buttons */}
           <div className="hidden md:flex items-center space-x-4">
-            <Button variant="ghost" size="sm" onClick={() => navigate('/auth')}>
-              Login
-            </Button>
-            <Button variant="hero" size="sm" onClick={() => navigate('/auth')}>
-              Sign Up
-            </Button>
+            {user ? (
+              <>
+                <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')}>
+                  Dashboard
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => signOut()}>
+                  Sign Out
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="ghost" size="sm" onClick={() => navigate('/auth')}>
+                  Login
+                </Button>
+                <Button variant="hero" size="sm" onClick={() => navigate('/auth')}>
+                  Sign Up
+                </Button>
+              </>
+            )}
           </div>
 
           {/* Mobile menu button */}
@@ -79,12 +94,25 @@ const Navigation = () => {
               </a>
             ))}
             <div className="flex flex-col space-y-2 pt-4 px-3">
-              <Button variant="ghost" size="sm" className="w-full" onClick={() => navigate('/auth')}>
-                Login
-              </Button>
-              <Button variant="hero" size="sm" className="w-full" onClick={() => navigate('/auth')}>
-                Sign Up
-              </Button>
+              {user ? (
+                <>
+                  <Button variant="ghost" size="sm" className="w-full" onClick={() => navigate('/dashboard')}>
+                    Dashboard
+                  </Button>
+                  <Button variant="outline" size="sm" className="w-full" onClick={() => signOut()}>
+                    Sign Out
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button variant="ghost" size="sm" className="w-full" onClick={() => navigate('/auth')}>
+                    Login
+                  </Button>
+                  <Button variant="hero" size="sm" className="w-full" onClick={() => navigate('/auth')}>
+                    Sign Up
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         </div>
