@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { Search, MapPin, Phone, Mail, Briefcase, Clock, Star, Loader } from 'lucide-react';
+import { Search, MapPin, Phone, Mail, Briefcase, Clock, Star, Loader, MessageCircle } from 'lucide-react';
 
 interface Lawyer {
   id: string;
@@ -22,7 +22,11 @@ interface Lawyer {
   ai_recommendation?: string;
 }
 
-const LawyerFinder = () => {
+interface LawyerFinderProps {
+  onSelectLawyer?: (lawyerId: string) => void;
+}
+
+const LawyerFinder = ({ onSelectLawyer }: LawyerFinderProps = {}) => {
   const { user } = useAuth();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -271,23 +275,32 @@ const LawyerFinder = () => {
                   </div>
                 )}
 
-                {/* Contact Buttons */}
-                <div className="flex gap-2 pt-2">
-                  <Button variant="outline" className="flex-1" asChild>
-                    <a href={`mailto:${lawyer.email}`}>
-                      <Mail className="h-4 w-4 mr-2" />
-                      Email
-                    </a>
-                  </Button>
-                  {lawyer.phone && (
-                    <Button variant="outline" className="flex-1" asChild>
-                      <a href={`tel:${lawyer.phone}`}>
-                        <Phone className="h-4 w-4 mr-2" />
-                        Call
-                      </a>
-                    </Button>
-                  )}
-                </div>
+                 {/* Contact Buttons */}
+                 <div className="flex gap-2 pt-2">
+                   <Button variant="outline" className="flex-1" asChild>
+                     <a href={`mailto:${lawyer.email}`}>
+                       <Mail className="h-4 w-4 mr-2" />
+                       Email
+                     </a>
+                   </Button>
+                   {lawyer.phone && (
+                     <Button variant="outline" className="flex-1" asChild>
+                       <a href={`tel:${lawyer.phone}`}>
+                         <Phone className="h-4 w-4 mr-2" />
+                         Call
+                       </a>
+                     </Button>
+                   )}
+                   {onSelectLawyer && (
+                     <Button 
+                       className="flex-1"
+                       onClick={() => onSelectLawyer(lawyer.id)}
+                     >
+                       <MessageCircle className="h-4 w-4 mr-2" />
+                       Chat
+                     </Button>
+                   )}
+                 </div>
               </CardContent>
             </Card>
           ))}
