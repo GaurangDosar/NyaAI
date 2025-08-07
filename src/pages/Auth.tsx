@@ -20,7 +20,7 @@ const Auth = () => {
   // Redirect if already logged in
   React.useEffect(() => {
     if (user) {
-      navigate('/');
+      navigate('/dashboard');
     }
   }, [user, navigate]);
 
@@ -64,7 +64,7 @@ const Auth = () => {
           title: "Welcome back!",
           description: "Successfully signed in.",
         });
-        navigate('/');
+        navigate('/dashboard');
       }
     } catch (error) {
       toast({
