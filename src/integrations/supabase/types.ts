@@ -59,7 +59,7 @@ export type Database = {
           created_at?: string
           id?: string
           summary?: string | null
-          title: string
+          title?: string
           updated_at?: string
           user_id: string
         }
@@ -73,128 +73,147 @@ export type Database = {
         }
         Relationships: []
       }
-      chatbot_logs: {
+      contacts: {
         Row: {
-          created_at: string | null
+          created_at: string
           id: string
-          summary: string | null
-          user_id: string | null
+          last_contacted: string | null
+          lawyer_id: string
+          user_id: string
         }
         Insert: {
-          created_at?: string | null
+          created_at?: string
           id?: string
-          summary?: string | null
-          user_id?: string | null
+          last_contacted?: string | null
+          lawyer_id: string
+          user_id: string
         }
         Update: {
-          created_at?: string | null
+          created_at?: string
           id?: string
-          summary?: string | null
-          user_id?: string | null
+          last_contacted?: string | null
+          lawyer_id?: string
+          user_id?: string
         }
         Relationships: []
       }
-      contacts: {
+      documents: {
         Row: {
-          created_at: string | null
+          content: string | null
+          created_at: string
+          file_path: string | null
           id: string
-          last_contacted: string | null
-          lawyer_id: string | null
-          user_id: string | null
+          status: string | null
+          summary: string | null
+          title: string
+          updated_at: string
+          user_id: string
         }
         Insert: {
-          created_at?: string | null
+          content?: string | null
+          created_at?: string
+          file_path?: string | null
           id?: string
-          last_contacted?: string | null
-          lawyer_id?: string | null
-          user_id?: string | null
+          status?: string | null
+          summary?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
         }
         Update: {
-          created_at?: string | null
+          content?: string | null
+          created_at?: string
+          file_path?: string | null
           id?: string
-          last_contacted?: string | null
-          lawyer_id?: string | null
-          user_id?: string | null
+          status?: string | null
+          summary?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "contacts_lawyer_id_fkey"
-            columns: ["lawyer_id"]
-            isOneToOne: false
-            referencedRelation: "lawyer_profiles"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
-      lawyer_profiles: {
+      government_schemes: {
         Row: {
-          bar_association: string | null
-          court_level: string | null
-          created_at: string | null
-          email: string
-          experience_years: number | null
+          application_process: string | null
+          benefits: string | null
+          category: string | null
+          created_at: string
+          deadline: string | null
+          description: string | null
+          eligibility_criteria: Json | null
+          gender: string | null
           id: string
-          license_number: string | null
+          is_active: boolean | null
+          max_age: number | null
+          max_income: number | null
+          min_age: number | null
+          min_income: number | null
           name: string
-          practice_areas: string | null
-          profile_picture: string | null
-          rating: number | null
-          review_count: number | null
-          specialization: string | null
+          required_documents: string[] | null
+          state: string | null
         }
         Insert: {
-          bar_association?: string | null
-          court_level?: string | null
-          created_at?: string | null
-          email: string
-          experience_years?: number | null
-          id: string
-          license_number?: string | null
+          application_process?: string | null
+          benefits?: string | null
+          category?: string | null
+          created_at?: string
+          deadline?: string | null
+          description?: string | null
+          eligibility_criteria?: Json | null
+          gender?: string | null
+          id?: string
+          is_active?: boolean | null
+          max_age?: number | null
+          max_income?: number | null
+          min_age?: number | null
+          min_income?: number | null
           name: string
-          practice_areas?: string | null
-          profile_picture?: string | null
-          rating?: number | null
-          review_count?: number | null
-          specialization?: string | null
+          required_documents?: string[] | null
+          state?: string | null
         }
         Update: {
-          bar_association?: string | null
-          court_level?: string | null
-          created_at?: string | null
-          email?: string
-          experience_years?: number | null
+          application_process?: string | null
+          benefits?: string | null
+          category?: string | null
+          created_at?: string
+          deadline?: string | null
+          description?: string | null
+          eligibility_criteria?: Json | null
+          gender?: string | null
           id?: string
-          license_number?: string | null
+          is_active?: boolean | null
+          max_age?: number | null
+          max_income?: number | null
+          min_age?: number | null
+          min_income?: number | null
           name?: string
-          practice_areas?: string | null
-          profile_picture?: string | null
-          rating?: number | null
-          review_count?: number | null
-          specialization?: string | null
+          required_documents?: string[] | null
+          state?: string | null
         }
         Relationships: []
       }
       messages: {
         Row: {
-          created_at: string | null
+          created_at: string
           id: string
           message: string
-          receiver_id: string | null
-          sender_id: string | null
+          receiver_id: string
+          sender_id: string
         }
         Insert: {
-          created_at?: string | null
+          created_at?: string
           id?: string
           message: string
-          receiver_id?: string | null
-          sender_id?: string | null
+          receiver_id: string
+          sender_id: string
         }
         Update: {
-          created_at?: string | null
+          created_at?: string
           id?: string
           message?: string
-          receiver_id?: string | null
-          sender_id?: string | null
+          receiver_id?: string
+          sender_id?: string
         }
         Relationships: []
       }
@@ -224,7 +243,7 @@ export type Database = {
           location?: string | null
           name: string
           phone?: string | null
-          role: string
+          role?: string
           specialization?: string | null
           updated_at?: string
           user_id: string
@@ -248,59 +267,68 @@ export type Database = {
       }
       ratings: {
         Row: {
-          created_at: string | null
+          created_at: string
           id: string
-          lawyer_id: string | null
-          rating: number | null
+          lawyer_id: string
+          rating: number
           review: string | null
-          user_id: string | null
+          user_id: string
         }
         Insert: {
-          created_at?: string | null
+          created_at?: string
           id?: string
-          lawyer_id?: string | null
-          rating?: number | null
+          lawyer_id: string
+          rating: number
           review?: string | null
-          user_id?: string | null
+          user_id: string
         }
         Update: {
-          created_at?: string | null
+          created_at?: string
           id?: string
-          lawyer_id?: string | null
-          rating?: number | null
+          lawyer_id?: string
+          rating?: number
           review?: string | null
-          user_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      scheme_applications: {
+        Row: {
+          application_data: Json | null
+          created_at: string
+          id: string
+          scheme_id: string
+          status: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          application_data?: Json | null
+          created_at?: string
+          id?: string
+          scheme_id: string
+          status?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          application_data?: Json | null
+          created_at?: string
+          id?: string
+          scheme_id?: string
+          status?: string | null
+          updated_at?: string
+          user_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "ratings_lawyer_id_fkey"
-            columns: ["lawyer_id"]
+            foreignKeyName: "scheme_applications_scheme_id_fkey"
+            columns: ["scheme_id"]
             isOneToOne: false
-            referencedRelation: "lawyer_profiles"
+            referencedRelation: "government_schemes"
             referencedColumns: ["id"]
           },
         ]
-      }
-      user_profiles: {
-        Row: {
-          created_at: string | null
-          email: string
-          id: string
-          name: string
-        }
-        Insert: {
-          created_at?: string | null
-          email: string
-          id: string
-          name: string
-        }
-        Update: {
-          created_at?: string | null
-          email?: string
-          id?: string
-          name?: string
-        }
-        Relationships: []
       }
     }
     Views: {
