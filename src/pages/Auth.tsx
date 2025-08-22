@@ -64,7 +64,7 @@ const Auth = () => {
           title: "Welcome back!",
           description: "Successfully signed in.",
         });
-        navigate('/component/Hero');
+        navigate('/');
       }
     } catch (error) {
       toast({
