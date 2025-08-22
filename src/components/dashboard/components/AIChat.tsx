@@ -52,16 +52,16 @@ const AIChat = () => {
   const loadChatSessions = async () => {
     try {
       const { data, error } = await supabase
-        .from('chatbot_logs')
+        .from('chat_sessions')
         .select('*')
         .eq('user_id', user?.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      const formattedSessions = (data || []).map(log => ({
-        id: log.id,
-        title: log.summary || 'AI Consultation',
-        created_at: log.created_at
+      const formattedSessions = (data || []).map(session => ({
+        id: session.id,
+        title: session.title || 'AI Consultation',
+        created_at: session.created_at
       }));
       setSessions(formattedSessions);
     } catch (error) {
@@ -70,8 +70,24 @@ const AIChat = () => {
   };
 
   const loadMessages = async (sessionId: string) => {
-    // For now, just show empty since we're using chatbot_logs for summaries
-    setMessages([]);
+    try {
+      const { data, error } = await supabase
+        .from('chat_messages')
+        .select('*')
+        .eq('session_id', sessionId)
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+      const formattedMessages = (data || []).map(msg => ({
+        id: msg.id,
+        role: msg.role as 'user' | 'assistant',
+        content: msg.content,
+        created_at: msg.created_at
+      }));
+      setMessages(formattedMessages);
+    } catch (error) {
+      console.error('Error loading messages:', error);
+    }
   };
 
   const handleSendMessage = async (e: React.FormEvent) => {

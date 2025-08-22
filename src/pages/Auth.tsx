@@ -132,6 +132,8 @@ const Auth = () => {
           title: "Account Created!",
           description: "Please check your email to verify your account.",
         });
+        // Redirect to main page after successful signup
+        navigate('/');
       }
     } catch (error) {
       toast({
