@@ -64,7 +64,7 @@ const Auth = () => {
           title: "Welcome back!",
           description: "Successfully signed in.",
         });
-        navigate('/');
+        navigate('/dashboard');
       }
     } catch (error) {
       toast({
@@ -130,10 +130,10 @@ const Auth = () => {
       } else {
         toast({
           title: "Account Created!",
-          description: "Please check your email to verify your account.",
+          description: "Welcome to NyaAI! Your account has been created.",
         });
-        // Redirect to main page after successful signup
-        navigate('/');
+        // Redirect to dashboard after successful signup
+        navigate('/dashboard');
       }
     } catch (error) {
       toast({
