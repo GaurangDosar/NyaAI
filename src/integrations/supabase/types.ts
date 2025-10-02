@@ -7,96 +7,13 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.12 (cd3cf9e)"
   }
   public: {
     Tables: {
-      chat_messages: {
-        Row: {
-          content: string
-          created_at: string
-          id: string
-          role: string
-          session_id: string
-        }
-        Insert: {
-          content: string
-          created_at?: string
-          id?: string
-          role: string
-          session_id: string
-        }
-        Update: {
-          content?: string
-          created_at?: string
-          id?: string
-          role?: string
-          session_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "chat_messages_session_id_fkey"
-            columns: ["session_id"]
-            isOneToOne: false
-            referencedRelation: "chat_sessions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      chat_sessions: {
-        Row: {
-          created_at: string
-          id: string
-          summary: string | null
-          title: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          summary?: string | null
-          title?: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          summary?: string | null
-          title?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      contacts: {
-        Row: {
-          created_at: string
-          id: string
-          last_contacted: string | null
-          lawyer_id: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          last_contacted?: string | null
-          lawyer_id: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          last_contacted?: string | null
-          lawyer_id?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
       documents: {
         Row: {
           content: string | null
@@ -133,212 +50,114 @@ export type Database = {
         }
         Relationships: []
       }
-      government_schemes: {
-        Row: {
-          application_process: string | null
-          benefits: string | null
-          category: string | null
-          created_at: string
-          deadline: string | null
-          description: string | null
-          eligibility_criteria: Json | null
-          gender: string | null
-          id: string
-          is_active: boolean | null
-          max_age: number | null
-          max_income: number | null
-          min_age: number | null
-          min_income: number | null
-          name: string
-          required_documents: string[] | null
-          state: string | null
-        }
-        Insert: {
-          application_process?: string | null
-          benefits?: string | null
-          category?: string | null
-          created_at?: string
-          deadline?: string | null
-          description?: string | null
-          eligibility_criteria?: Json | null
-          gender?: string | null
-          id?: string
-          is_active?: boolean | null
-          max_age?: number | null
-          max_income?: number | null
-          min_age?: number | null
-          min_income?: number | null
-          name: string
-          required_documents?: string[] | null
-          state?: string | null
-        }
-        Update: {
-          application_process?: string | null
-          benefits?: string | null
-          category?: string | null
-          created_at?: string
-          deadline?: string | null
-          description?: string | null
-          eligibility_criteria?: Json | null
-          gender?: string | null
-          id?: string
-          is_active?: boolean | null
-          max_age?: number | null
-          max_income?: number | null
-          min_age?: number | null
-          min_income?: number | null
-          name?: string
-          required_documents?: string[] | null
-          state?: string | null
-        }
-        Relationships: []
-      }
-      messages: {
-        Row: {
-          created_at: string
-          id: string
-          message: string
-          receiver_id: string
-          sender_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          message: string
-          receiver_id: string
-          sender_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          message?: string
-          receiver_id?: string
-          sender_id?: string
-        }
-        Relationships: []
-      }
-      profiles: {
+      lawyer_profiles: {
         Row: {
           availability: boolean | null
+          bio: string | null
           created_at: string
-          email: string
           experience_years: number | null
           id: string
           license_number: string | null
-          location: string | null
-          name: string
-          phone: string | null
-          role: string
           specialization: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
           availability?: boolean | null
+          bio?: string | null
           created_at?: string
-          email: string
           experience_years?: number | null
           id?: string
           license_number?: string | null
-          location?: string | null
-          name: string
-          phone?: string | null
-          role?: string
           specialization?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
           availability?: boolean | null
+          bio?: string | null
           created_at?: string
-          email?: string
           experience_years?: number | null
           id?: string
           license_number?: string | null
-          location?: string | null
-          name?: string
-          phone?: string | null
-          role?: string
           specialization?: string | null
           updated_at?: string
           user_id?: string
         }
         Relationships: []
       }
-      ratings: {
+      profiles: {
         Row: {
+          avatar_url: string | null
           created_at: string
+          email: string
           id: string
-          lawyer_id: string
-          rating: number
-          review: string | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          lawyer_id: string
-          rating: number
-          review?: string | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          lawyer_id?: string
-          rating?: number
-          review?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
-      scheme_applications: {
-        Row: {
-          application_data: Json | null
-          created_at: string
-          id: string
-          scheme_id: string
-          status: string | null
+          location: string | null
+          name: string
+          phone: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
-          application_data?: Json | null
+          avatar_url?: string | null
           created_at?: string
+          email: string
           id?: string
-          scheme_id: string
-          status?: string | null
+          location?: string | null
+          name: string
+          phone?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
-          application_data?: Json | null
+          avatar_url?: string | null
           created_at?: string
+          email?: string
           id?: string
-          scheme_id?: string
-          status?: string | null
+          location?: string | null
+          name?: string
+          phone?: string | null
           updated_at?: string
           user_id?: string
         }
-        Relationships: [
-          {
-            foreignKeyName: "scheme_applications_scheme_id_fkey"
-            columns: ["scheme_id"]
-            isOneToOne: false
-            referencedRelation: "government_schemes"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
       }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "user" | "lawyer"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -465,6 +284,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["user", "lawyer"],
+    },
   },
 } as const

@@ -7,6 +7,10 @@ import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import Auth from "./pages/Auth";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
+import AIChatbot from "./pages/AIChatbot";
+import DocumentSummarizer from "./pages/DocumentSummarizer";
+import GovernmentSchemes from "./pages/GovernmentSchemes";
+import FindLawyers from "./pages/FindLawyers";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -37,13 +41,33 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
+            <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/dashboard" element={
               <ProtectedRoute>
                 <Dashboard />
               </ProtectedRoute>
             } />
-            <Route path="/" element={<Index />} />
+            <Route path="/ai-chat" element={
+              <ProtectedRoute>
+                <AIChatbot />
+              </ProtectedRoute>
+            } />
+            <Route path="/document-summarizer" element={
+              <ProtectedRoute>
+                <DocumentSummarizer />
+              </ProtectedRoute>
+            } />
+            <Route path="/government-schemes" element={
+              <ProtectedRoute>
+                <GovernmentSchemes />
+              </ProtectedRoute>
+            } />
+            <Route path="/find-lawyers" element={
+              <ProtectedRoute>
+                <FindLawyers />
+              </ProtectedRoute>
+            } />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

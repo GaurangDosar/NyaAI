@@ -119,7 +119,7 @@ const Auth = () => {
         profileData.practice_areas = signUpData.practiceAreas;
       }
 
-      const { error } = await signUp(signUpData.email, signUpData.password, profileData);
+      const { error } = await signUp(signUpData.email, signUpData.password, signUpData.name, signUpData.role);
       
       if (error) {
         toast({
