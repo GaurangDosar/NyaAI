@@ -1,35 +1,42 @@
 import { Brain, FileText, Users, MapPin, Shield, Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 const Features = () => {
+  const navigate = useNavigate();
+  
   const features = [
     {
       icon: Brain,
       title: "AI Legal Chatbot",
       description: "Get instant legal advice from our advanced AI assistant trained on comprehensive legal databases.",
       highlights: ["24/7 Availability", "Multilingual Support", "Case Law References"],
-      color: "text-primary"
+      color: "text-primary",
+      route: "/ai-chat"
     },
     {
       icon: FileText,
       title: "Document Summarizer",
       description: "Upload legal documents and receive AI-powered summaries highlighting key points and potential issues.",
       highlights: ["PDF & DOCX Support", "Key Points Extraction", "Risk Assessment"],
-      color: "text-accent"
+      color: "text-accent",
+      route: "/document-summarizer"
     },
     {
       icon: Shield,
       title: "Government Schemes Advisor",
       description: "Discover relevant government schemes and benefits based on your personal and financial profile.",
       highlights: ["Personalized Matching", "Eligibility Checker", "Application Guidance"],
-      color: "text-primary-glow"
+      color: "text-primary-glow",
+      route: "/government-schemes"
     },
     {
       icon: MapPin,
       title: "Nearby Lawyer Finder",
       description: "Connect with qualified lawyers in your area specializing in your specific legal needs.",
       highlights: ["Location-Based Search", "Specialization Filters", "Verified Professionals"],
-      color: "text-success"
+      color: "text-success",
+      route: "/find-lawyers"
     }
   ];
 
@@ -91,7 +98,12 @@ const Features = () => {
                     ))}
                   </div>
                   
-                  <Button variant="ghost" size="sm" className="group">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="group"
+                    onClick={() => navigate(feature.route)}
+                  >
                     Learn More
                     <Zap className="ml-2 h-4 w-4 group-hover:text-primary transition-smooth" />
                   </Button>
