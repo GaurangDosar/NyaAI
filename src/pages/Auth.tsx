@@ -20,7 +20,7 @@ const Auth = () => {
   // Redirect if already logged in
   React.useEffect(() => {
     if (user) {
-      navigate('/dashboard');
+      navigate('/');
     }
   }, [user, navigate]);
 
@@ -64,7 +64,7 @@ const Auth = () => {
           title: "Welcome back!",
           description: "Successfully signed in.",
         });
-        navigate('/dashboard');
+        navigate('/');
       }
     } catch (error) {
       toast({
@@ -132,8 +132,8 @@ const Auth = () => {
           title: "Account Created!",
           description: "Welcome to NyaAI! Your account has been created.",
         });
-        // Redirect to dashboard after successful signup
-        navigate('/dashboard');
+        // Redirect to home page after successful signup
+        navigate('/');
       }
     } catch (error) {
       toast({
@@ -160,16 +160,6 @@ const Auth = () => {
       </div>
       <div className="absolute inset-0 bg-background/10 z-[1]" />
       
-      {/* Home Button */}
-      <Button 
-        variant="ghost" 
-        size="sm" 
-        className="absolute top-4 left-4 z-10 glass border border-border/50 text-foreground hover:text-primary"
-        onClick={() => navigate('/')}
-      >
-        <Home className="h-4 w-4 mr-2" />
-        Home
-      </Button>
       <div className="relative z-10 w-full max-w-md">
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-3 mb-6">
