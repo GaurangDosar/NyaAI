@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Menu, X, Scale, Shield, Brain, Users } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
 const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, signOut } = useAuth();
 
   const navItems = [
@@ -16,12 +17,31 @@ const Navigation = () => {
     { name: "Contact", href: "#contact" },
   ];
 
+  const handleNavClick = (href: string) => {
+    if (location.pathname !== '/') {
+      // Navigate to home page first, then scroll
+      navigate('/');
+      setTimeout(() => {
+        const element = document.querySelector(href);
+        element?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    } else {
+      // Already on home page, just scroll
+      const element = document.querySelector(href);
+      element?.scrollIntoView({ behavior: 'smooth' });
+    }
+    setIsMenuOpen(false);
+  };
+
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 glass border-b border-border/50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <div className="flex items-center space-x-2">
+          <div 
+            className="flex items-center space-x-2 cursor-pointer"
+            onClick={() => navigate('/')}
+          >
             <div className="relative">
               <Scale className="h-8 w-8 text-primary animate-float" />
               <div className="absolute inset-0 h-8 w-8 text-primary/30 animate-glow-pulse" />
@@ -34,13 +54,13 @@ const Navigation = () => {
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
             {navItems.map((item) => (
-              <a
+              <button
                 key={item.name}
-                href={item.href}
+                onClick={() => handleNavClick(item.href)}
                 className="text-foreground hover:text-primary transition-smooth hover:scale-105"
               >
                 {item.name}
-              </a>
+              </button>
             ))}
           </div>
 
@@ -84,14 +104,13 @@ const Navigation = () => {
         <div className="md:hidden glass border-t border-border/50 animate-fade-in">
           <div className="px-2 pt-2 pb-3 space-y-1">
             {navItems.map((item) => (
-              <a
+              <button
                 key={item.name}
-                href={item.href}
-                className="block px-3 py-2 text-foreground hover:text-primary transition-smooth"
-                onClick={() => setIsMenuOpen(false)}
+                onClick={() => handleNavClick(item.href)}
+                className="block w-full text-left px-3 py-2 text-foreground hover:text-primary transition-smooth"
               >
                 {item.name}
-              </a>
+              </button>
             ))}
             <div className="flex flex-col space-y-2 pt-4 px-3">
               {user ? (
