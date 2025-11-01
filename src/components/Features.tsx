@@ -123,11 +123,11 @@ const Features = () => {
             Start your journey towards smarter legal solutions today.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Button variant="hero" size="lg">
+            <Button variant="hero" size="lg" onClick={() => navigate('/ai-chat')}>
               Start Free Trial
             </Button>
-            <Button variant="outline" size="lg">
-              Schedule Demo
+            <Button variant="outline" size="lg" onClick={() => navigate('/document-summarizer')}>
+              Try Document Analyzer
             </Button>
           </div>
         </div>

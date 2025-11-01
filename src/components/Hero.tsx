@@ -5,6 +5,16 @@ import { useNavigate } from "react-router-dom";
 const Hero = () => {
   const navigate = useNavigate();
 
+  const handleGetStarted = () => {
+    navigate('/ai-chat');
+  };
+
+  const handleWatchDemo = () => {
+    // Scroll to features section
+    const featuresSection = document.querySelector('#features');
+    featuresSection?.scrollIntoView({ behavior: 'smooth' });
+  };
+
   return (
     <section id="home" className="relative min-h-screen flex items-center justify-center overflow-hidden">
       {/* Spline 3D Background */}
@@ -73,12 +83,12 @@ const Hero = () => {
 
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Button variant="hero" size="xl" className="group" onClick={() => navigate('/auth')}>
+            <Button variant="hero" size="xl" className="group" onClick={handleGetStarted}>
               Get Started Free
               <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
             </Button>
-            <Button variant="neon" size="xl" onClick={() => navigate('/auth')}>
-              Watch Demo
+            <Button variant="neon" size="xl" onClick={handleWatchDemo}>
+              Explore Features
             </Button>
           </div>
 
