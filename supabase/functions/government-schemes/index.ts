@@ -32,153 +32,149 @@ serve(async (req) => {
       throw new Error('Invalid authentication');
     }
 
-    const { applicantName, age, gender, income, occupation, location } = await req.json();
+    const { 
+      applicantName, 
+      age, 
+      gender, 
+      income, 
+      parentIncome,
+      occupation, 
+      state,
+      areaType,
+      caste,
+      isDisabled,
+      isMinority,
+      isStudent
+    } = await req.json();
     
-    if (!applicantName || !age || !gender || !occupation || !location) {
-      throw new Error('All fields are required');
+    if (!applicantName || !age || !gender || !occupation || !state || !areaType) {
+      throw new Error('All required fields must be provided');
     }
 
     console.log('Processing government schemes for user:', user.id);
-
-    // Get all schemes from database
-    const { data: allSchemes, error: schemesError } = await supabaseClient
-      .from('government_schemes')
-      .select('*')
-      .eq('is_active', true);
-
-    if (schemesError) {
-      throw new Error(`Database error: ${schemesError.message}`);
-    }
-
-    // Filter schemes based on eligibility criteria
-    const eligibleSchemes = allSchemes.filter(scheme => {
-      const criteria = scheme.eligibility_criteria;
-      
-      // Check age criteria
-      if (criteria.age) {
-        if (criteria.age.min && age < criteria.age.min) return false;
-        if (criteria.age.max && age > criteria.age.max) return false;
-      }
-      
-      // Check income criteria
-      if (criteria.income && income) {
-        if (criteria.income.max && income > criteria.income.max) return false;
-        if (criteria.income.min && income < criteria.income.min) return false;
-      }
-      
-      // Check gender criteria
-      if (criteria.gender && criteria.gender !== gender) return false;
-      
-      // Check occupation criteria
-      if (criteria.occupation && occupation !== criteria.occupation) return false;
-      
-      // Check land holding criteria (for farmers)
-      if (criteria.land_holding && occupation === 'farmer') {
-        // This would need additional land holding input in the form
-        // For now, we'll assume all farmers qualify
-      }
-      
-      return true;
+    console.log('Input data:', { 
+      applicantName, age, gender, income, parentIncome, occupation, state, areaType,
+      caste, isDisabled, isMinority, isStudent
     });
 
-    // Save application record
-    const schemeApplications = eligibleSchemes.map(scheme => ({
-      user_id: user.id,
-      scheme_id: scheme.id,
-      applicant_name: applicantName,
-      age,
-      gender,
-      income: income || null,
-      occupation,
-      location,
-      status: 'suggested'
-    }));
+    // Use Groq AI to generate eligible government schemes based on user profile
+    const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${Deno.env.get('GROQ_API_KEY')}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages: [
+          {
+            role: 'system',
+            content: `You are an expert on Indian government schemes and welfare programs. Your task is to identify and recommend suitable government schemes based on applicant profiles.
 
-    if (schemeApplications.length > 0) {
-      const { error: saveError } = await supabaseClient
-        .from('scheme_applications')
-        .insert(schemeApplications);
+RESPONSE FORMAT:
+Return a valid JSON array with 5-8 most relevant schemes. Each scheme must have this exact structure:
+{
+  "id": "unique-scheme-id",
+  "name": "Official Scheme Name",
+  "description": "Brief description (50-100 words)",
+  "benefits": "Key benefits (50-100 words)",
+  "category": "Category (Education/Health/Financial/Housing/Agriculture/Business/Pension/Social Welfare)",
+  "eligibility": "Who can apply (30-50 words)",
+  "howToApply": "Application process (50-100 words)",
+  "documents": ["Document 1", "Document 2", "Document 3"],
+  "deadline": "Application deadline or 'No deadline'",
+  "officialWebsite": "Official website URL or 'Visit nearest government office'",
+  "state": "Applicable state or 'All India'",
+  "personalizedReason": "Why this scheme suits the applicant (50-80 words)"
+}
 
-      if (saveError) {
-        console.warn('Could not save scheme applications:', saveError.message);
-      }
-    }
-
-    // Use AI to enhance recommendations
-    const schemeDetails = eligibleSchemes.map(scheme => ({
-      name: scheme.name,
-      description: scheme.description,
-      benefits: scheme.benefits,
-      category: scheme.category
-    }));
-
-    let enhancedRecommendations = eligibleSchemes;
-
-    if (eligibleSchemes.length > 0) {
-      try {
-        const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
-            'Content-Type': 'application/json',
+IMPORTANT RULES:
+1. Return ONLY valid JSON array, no markdown, no explanations
+2. Include real, active Indian government schemes
+3. Prioritize central government schemes, include 1-2 relevant state schemes if applicable
+4. Consider ALL profile factors: age, gender, income, occupation, location
+5. Provide accurate, helpful information
+6. personalizedReason must explain why THIS applicant should apply`
           },
-          body: JSON.stringify({
-            model: 'gpt-4o-mini',
-            messages: [
-              {
-                role: 'system',
-                content: 'You are an expert on Indian government schemes. Provide personalized recommendations and explain why each scheme is suitable for the applicant.'
-              },
-              {
-                role: 'user',
-                content: `Given this applicant profile:
-                Name: ${applicantName}
-                Age: ${age}
-                Gender: ${gender}
-                Income: ${income || 'Not specified'}
-                Occupation: ${occupation}
-                Location: ${location}
-                
-                Here are the eligible schemes: ${JSON.stringify(schemeDetails)}
-                
-                Please provide a personalized explanation for each scheme explaining why it's beneficial for this applicant. Keep each explanation under 100 words.`
-              }
-            ],
-            max_tokens: 1000,
-            temperature: 0.7,
-          }),
-        });
+          {
+            role: 'user',
+            content: `Find eligible government schemes for this applicant:
 
-        if (openAIResponse.ok) {
-          const aiResult = await openAIResponse.json();
-          const aiRecommendations = aiResult.choices[0].message.content;
-          
-          // Add AI recommendations to response
-          enhancedRecommendations = eligibleSchemes.map(scheme => ({
-            ...scheme,
-            ai_recommendation: aiRecommendations
-          }));
-        }
-      } catch (aiError) {
-        console.warn('AI enhancement failed:', aiError);
-        // Continue without AI enhancement
-      }
+Name: ${applicantName}
+Age: ${age} years
+Gender: ${gender}
+Annual Income: ${income ? `₹${income}` : 'Not specified'}
+Parent/Guardian Income: ${parentIncome ? `₹${parentIncome}` : 'Not specified'}
+Occupation: ${occupation}
+State: ${state}
+Area Type: ${areaType} (Urban/Rural)
+Caste Category: ${caste || 'Not specified'}
+Person with Disability: ${isDisabled ? 'Yes' : 'No'}
+Belongs to Minority: ${isMinority ? 'Yes' : 'No'}
+Student Status: ${isStudent ? 'Yes - Currently a student' : 'No - Not a student'}
+
+IMPORTANT: Consider ALL these factors when recommending schemes:
+- Prioritize schemes for SC/ST/OBC/PVTG/DNT if applicable
+- Include disability-specific schemes if person is disabled
+- Include minority welfare schemes if applicable
+- Include student scholarships and education schemes if student
+- Consider parent income for student/dependent schemes
+- Include caste-based reservations and benefits
+- Include state-specific schemes for ${state}
+- Consider ${areaType} area specific schemes (rural development, urban housing, etc.)
+- Prioritize both central and state government schemes
+
+Return JSON array of 6-10 most suitable schemes based on ALL eligibility criteria.`
+          }
+        ],
+        max_tokens: 3000,
+        temperature: 0.3,
+      }),
+    });
+
+    if (!groqResponse.ok) {
+      const errorData = await groqResponse.text();
+      console.error('Groq API error:', errorData);
+      throw new Error(`AI service error: ${groqResponse.statusText}`);
     }
 
-    console.log(`Found ${eligibleSchemes.length} eligible schemes for user:`, user.id);
+    const aiResult = await groqResponse.json();
+    const aiContent = aiResult.choices[0].message.content;
+    
+    console.log('AI Response:', aiContent);
+
+    // Parse the AI response as JSON
+    let schemes;
+    try {
+      // Try to extract JSON if wrapped in markdown
+      const jsonMatch = aiContent.match(/\[[\s\S]*\]/);
+      const jsonString = jsonMatch ? jsonMatch[0] : aiContent;
+      schemes = JSON.parse(jsonString);
+      
+      if (!Array.isArray(schemes)) {
+        throw new Error('AI response is not an array');
+      }
+    } catch (parseError) {
+      console.error('Failed to parse AI response:', parseError);
+      throw new Error('Failed to generate schemes. Please try again.');
+    }
+
+    console.log(`Generated ${schemes.length} eligible schemes for user:`, user.id);
 
     return new Response(JSON.stringify({ 
       success: true, 
-      schemes: enhancedRecommendations.slice(0, 5), // Return top 5 schemes
-      total_eligible: eligibleSchemes.length
+      schemes: schemes,
+      total_eligible: schemes.length
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
 
   } catch (error) {
     console.error('Error in government-schemes:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
     return new Response(JSON.stringify({ 
-      error: error.message 
+      error: errorMessage,
+      details: error instanceof Error ? error.stack : String(error)
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

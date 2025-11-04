@@ -1,12 +1,18 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Sparkles, Shield, Brain } from "lucide-react";
+import { ArrowRight, Sparkles, Shield, Brain, LayoutDashboard } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Hero = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   const handleGetStarted = () => {
-    navigate('/ai-chat');
+    if (user) {
+      navigate('/dashboard');
+    } else {
+      navigate('/auth');
+    }
   };
 
   const handleWatchDemo = () => {
@@ -84,8 +90,17 @@ const Hero = () => {
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Button variant="hero" size="xl" className="group" onClick={handleGetStarted}>
-              Get Started Free
-              <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+              {user ? (
+                <>
+                  <LayoutDashboard className="mr-2 h-5 w-5" />
+                  Go to Dashboard
+                </>
+              ) : (
+                <>
+                  Get Started Free
+                  <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                </>
+              )}
             </Button>
             <Button variant="neon" size="xl" onClick={handleWatchDemo}>
               Explore Features

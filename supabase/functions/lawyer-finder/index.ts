@@ -40,37 +40,56 @@ serve(async (req) => {
 
     console.log('Finding lawyers for user:', user.id, 'in location:', location);
 
-    // Build query for lawyers
+    // Build query for lawyers - JOIN profiles with lawyer_profiles and user_roles
     let query = supabaseClient
-      .from('profiles')
-      .select('*')
-      .eq('role', 'lawyer')
+      .from('lawyer_profiles')
+      .select(`
+        id,
+        user_id,
+        specialization,
+        license_number,
+        experience_years,
+        bio,
+        availability,
+        profiles!inner (
+          name,
+          email,
+          phone,
+          location,
+          avatar_url
+        )
+      `)
       .eq('availability', true);
 
     // Filter by location (case-insensitive partial match)
-    query = query.ilike('location', `%${location}%`);
+    if (location) {
+      query = query.ilike('profiles.location', `%${location}%`);
+    }
 
     // Filter by specialization if provided
     if (specialization) {
       query = query.ilike('specialization', `%${specialization}%`);
     }
 
-    const { data: lawyers, error: lawyersError } = await query.limit(10);
+    const { data: lawyerData, error: lawyersError } = await query.limit(10);
 
     if (lawyersError) {
       throw new Error(`Database error: ${lawyersError.message}`);
     }
 
-    // Format lawyer data for response
-    const formattedLawyers = lawyers.map(lawyer => ({
+    // Format lawyer data for response (flatten the joined data)
+    const formattedLawyers = (lawyerData || []).map(lawyer => ({
       id: lawyer.id,
-      name: lawyer.name,
-      email: lawyer.email,
-      phone: lawyer.phone,
-      location: lawyer.location,
-      specialization: lawyer.specialization,
-      experience_years: lawyer.experience_years,
-      license_number: lawyer.license_number,
+      user_id: lawyer.user_id,
+      name: lawyer.profiles?.name || 'Unknown',
+      email: lawyer.profiles?.email || '',
+      phone: lawyer.profiles?.phone || '',
+      location: lawyer.profiles?.location || '',
+      avatar_url: lawyer.profiles?.avatar_url || null,
+      specialization: lawyer.specialization || '',
+      experience_years: lawyer.experience_years || 0,
+      license_number: lawyer.license_number || '',
+      bio: lawyer.bio || '',
       availability: lawyer.availability
     }));
 
@@ -79,14 +98,14 @@ serve(async (req) => {
 
     if (formattedLawyers.length > 0 && specialization) {
       try {
-        const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+        const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+            'Authorization': `Bearer ${Deno.env.get('GROQ_API_KEY')}`,
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'gpt-4o-mini',
+            model: 'llama-3.3-70b-versatile',
             messages: [
               {
                 role: 'system',
@@ -106,8 +125,8 @@ serve(async (req) => {
           }),
         });
 
-        if (openAIResponse.ok) {
-          const aiResult = await openAIResponse.json();
+        if (groqResponse.ok) {
+          const aiResult = await groqResponse.json();
           const aiRecommendations = aiResult.choices[0].message.content;
           
           enhancedLawyers = formattedLawyers.map(lawyer => ({

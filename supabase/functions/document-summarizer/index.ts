@@ -40,15 +40,15 @@ serve(async (req) => {
 
     console.log('Processing document summarization for user:', user.id);
 
-    // Call OpenAI for summarization
-    const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+    // Call Groq for summarization
+    const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+        'Authorization': `Bearer ${Deno.env.get('GROQ_API_KEY')}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'llama-3.3-70b-versatile',
         messages: [
           {
             role: 'system',
@@ -64,12 +64,12 @@ serve(async (req) => {
       }),
     });
 
-    if (!openAIResponse.ok) {
-      const error = await openAIResponse.json();
-      throw new Error(`OpenAI API error: ${error.error?.message || 'Unknown error'}`);
+    if (!groqResponse.ok) {
+      const error = await groqResponse.json();
+      throw new Error(`Groq API error: ${error.error?.message || 'Unknown error'}`);
     }
 
-    const aiResult = await openAIResponse.json();
+    const aiResult = await groqResponse.json();
     const summary = aiResult.choices[0].message.content;
 
     // Update document with summary

@@ -85,20 +85,59 @@ serve(async (req) => {
       console.warn('Could not fetch message history:', historyError.message);
     }
 
-    // Prepare conversation history for OpenAI
+    // Prepare conversation history for AI
     const conversationHistory = messageHistory || [];
     const messages = [
       {
         role: 'system',
-        content: `You are an expert AI legal assistant specializing in Indian law. Provide accurate, helpful legal guidance while being clear that you're an AI assistant and users should consult with qualified lawyers for specific legal matters. 
+        content: `You are NyaAI, an expert AI legal assistant specializing in Indian law and jurisprudence. Your mission is to democratize access to legal knowledge while maintaining the highest standards of accuracy and ethics.
 
-Key guidelines:
-- Always preface advice with "As per Indian law" when applicable
-- Be professional, empathetic, and clear
-- Explain legal concepts in simple terms
-- Suggest when users should seek professional legal counsel
-- Stay current with Indian legal frameworks
-- Focus on practical, actionable advice`
+CORE IDENTITY:
+- You are helpful, professional, and empathetic
+- You understand the complexity of legal matters and communicate clearly
+- You acknowledge limitations and when professional counsel is necessary
+- You respect user privacy and maintain confidentiality
+
+RESPONSE FRAMEWORK:
+1. **Understand Context**: First, clarify the legal issue at hand
+2. **Legal Foundation**: Reference relevant Indian laws, acts, or sections when applicable
+3. **Practical Guidance**: Provide clear, actionable steps
+4. **Important Caveats**: Highlight critical considerations, exceptions, or risks
+5. **Next Steps**: Suggest when to consult a lawyer or take specific action
+
+LEGAL DOMAINS (Indian Law):
+- Constitution of India and Fundamental Rights
+- Civil Law (Contracts, Property, Family)
+- Criminal Law (IPC, CrPC, Evidence Act)
+- Consumer Protection
+- Labour & Employment Law
+- Corporate & Business Law
+- Taxation (Income Tax, GST)
+- Intellectual Property
+- Cyber Law and IT Act
+
+COMMUNICATION STYLE:
+- Start responses with a brief empathetic acknowledgment
+- Use structured formatting (bullet points, numbered lists)
+- Define legal terms in simple language
+- Use examples when helpful
+- Be concise but comprehensive
+- Always include: "⚖️ Legal Disclaimer: This is general information. For specific legal advice, consult a qualified lawyer."
+
+WHEN TO ESCALATE:
+- Serious criminal matters
+- Complex litigation cases
+- High-value financial disputes
+- Cases requiring immediate legal action
+- Matters involving minors or vulnerable persons
+
+PROHIBITED:
+- Never claim to replace a lawyer
+- Never provide advice that could harm the user
+- Never make definitive predictions about case outcomes
+- Never request personal identification documents
+
+Remember: Your goal is to empower users with legal knowledge while ensuring they understand when professional representation is essential.`
       },
       ...conversationHistory.map(msg => ({
         role: msg.role as 'user' | 'assistant',
@@ -106,27 +145,30 @@ Key guidelines:
       }))
     ];
 
-    // Call OpenAI for AI response
-    const openAIResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+    // Call Groq for AI response
+    const groqResponse = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+        'Authorization': `Bearer ${Deno.env.get('GROQ_API_KEY')}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'llama-3.3-70b-versatile',
         messages,
-        max_tokens: 1500,
-        temperature: 0.7,
+        max_tokens: 2000,
+        temperature: 0.5,
+        top_p: 0.9,
+        frequency_penalty: 0.3,
+        presence_penalty: 0.2,
       }),
     });
 
-    if (!openAIResponse.ok) {
-      const error = await openAIResponse.json();
-      throw new Error(`OpenAI API error: ${error.error?.message || 'Unknown error'}`);
+    if (!groqResponse.ok) {
+      const error = await groqResponse.json();
+      throw new Error(`Groq API error: ${error.error?.message || 'Unknown error'}`);
     }
 
-    const aiResult = await openAIResponse.json();
+    const aiResult = await groqResponse.json();
     const aiResponse = aiResult.choices[0].message.content;
 
     // Save AI response

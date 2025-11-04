@@ -10,8 +10,18 @@ const FindLawyers = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+      <div className="min-h-screen relative overflow-hidden bg-background flex items-center justify-center">
+        <div className="absolute inset-0 z-0"
+          style={{
+            backgroundImage: `
+              radial-gradient(circle at 20% 80%, hsl(280 100% 60% / 0.15) 0%, transparent 50%),
+              radial-gradient(circle at 80% 20%, hsl(290 80% 70% / 0.15) 0%, transparent 50%)
+            `
+          }}
+        />
+        <div className="relative z-10">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-primary"></div>
+        </div>
       </div>
     );
   }
@@ -21,10 +31,20 @@ const FindLawyers = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5">
+    <div className="min-h-screen relative overflow-hidden bg-background">
+      {/* Purple radial gradients */}
+      <div className="absolute inset-0 z-0"
+        style={{
+          backgroundImage: `
+            radial-gradient(circle at 20% 80%, hsl(280 100% 60% / 0.15) 0%, transparent 50%),
+            radial-gradient(circle at 80% 20%, hsl(290 80% 70% / 0.15) 0%, transparent 50%)
+          `
+        }}
+      />
+      
       <Navigation />
       
-      <div className="container mx-auto px-4 pt-24 pb-8">
+      <div className="relative z-10 container mx-auto px-4 pt-24 pb-8">
         <Card className="max-w-4xl mx-auto glass">
           <CardHeader>
             <div className="flex items-center gap-3">
