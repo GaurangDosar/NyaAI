@@ -179,7 +179,7 @@ const AIChatbot = () => {
       let result;
       try {
         response = await fetch(
-          `https://gexdoytyemjzonxguvhv.supabase.co/functions/v1/ai-lawyer-chat`,
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/ai-lawyer-chat`,
           {
             method: 'POST',
             headers: {

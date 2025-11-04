@@ -8,7 +8,7 @@ export default function TestSupabaseConnection() {
   useEffect(() => {
     const testConnection = async () => {
       console.log('🧪 Testing Supabase connection...');
-      console.log('Supabase URL:', 'https://gexdoytyemjzonxguvhv.supabase.co');
+      console.log('Supabase URL:', import.meta.env.VITE_SUPABASE_URL);
       
       try {
         // Test 1: Check auth session

@@ -74,7 +74,7 @@ const GovernmentSchemes = () => {
       }
       
       console.log('Making fetch request to government-schemes function...');
-      const response = await fetch(`https://gexdoytyemjzonxguvhv.supabase.co/functions/v1/government-schemes`, {
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/government-schemes`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${session?.access_token}`,
