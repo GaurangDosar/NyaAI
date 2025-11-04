@@ -78,20 +78,23 @@ serve(async (req) => {
     }
 
     // Format lawyer data for response (flatten the joined data)
-    const formattedLawyers = (lawyerData || []).map(lawyer => ({
-      id: lawyer.id,
-      user_id: lawyer.user_id,
-      name: lawyer.profiles?.name || 'Unknown',
-      email: lawyer.profiles?.email || '',
-      phone: lawyer.profiles?.phone || '',
-      location: lawyer.profiles?.location || '',
-      avatar_url: lawyer.profiles?.avatar_url || null,
-      specialization: lawyer.specialization || '',
-      experience_years: lawyer.experience_years || 0,
-      license_number: lawyer.license_number || '',
-      bio: lawyer.bio || '',
-      availability: lawyer.availability
-    }));
+    const formattedLawyers = (lawyerData || []).map(lawyer => {
+      const profile = Array.isArray(lawyer.profiles) ? lawyer.profiles[0] : lawyer.profiles;
+      return {
+        id: lawyer.id,
+        user_id: lawyer.user_id,
+        name: profile?.name || 'Unknown',
+        email: profile?.email || '',
+        phone: profile?.phone || '',
+        location: profile?.location || '',
+        avatar_url: profile?.avatar_url || null,
+        specialization: lawyer.specialization || '',
+        experience_years: lawyer.experience_years || 0,
+        license_number: lawyer.license_number || '',
+        bio: lawyer.bio || '',
+        availability: lawyer.availability
+      };
+    });
 
     // Use AI to enhance lawyer recommendations if we have results
     let enhancedLawyers = formattedLawyers;
@@ -157,7 +160,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in lawyer-finder:', error);
     return new Response(JSON.stringify({ 
-      error: error.message 
+      error: error instanceof Error ? error.message : 'Unknown error occurred'
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
