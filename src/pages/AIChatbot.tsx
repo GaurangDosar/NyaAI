@@ -48,22 +48,73 @@ const AIChatbot = () => {
     scrollToBottom();
   }, [messages]);
 
-  // Temporarily disabled chat history to fix loading issues
-  // Will re-enable once basic chat works
+  // Load chat sessions when user is available
   useEffect(() => {
-    // Skip loading sessions for now
-    setLoadingSessions(false);
+    if (user) {
+      loadSessions();
+    }
   }, [user]);
 
+  // Load messages when session changes
+  useEffect(() => {
+    if (currentSessionId) {
+      loadMessages(currentSessionId);
+    }
+  }, [currentSessionId]);
+
   const loadSessions = async () => {
-    // Disabled for now - causing timeout issues
-    setLoadingSessions(false);
-    setSessions([]);
+    if (!user) return;
+    
+    setLoadingSessions(true);
+    try {
+      const { data, error } = await supabase
+        .from('chat_sessions')
+        .select('id, title, created_at')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error loading sessions:', error);
+        throw error;
+      }
+
+      setSessions(data || []);
+    } catch (error: any) {
+      console.error('Failed to load sessions:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load chat history',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoadingSessions(false);
+    }
   };
 
   const loadMessages = async (sessionId: string) => {
-    // Disabled for now
-    setMessages([]);
+    if (!sessionId) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('chat_messages')
+        .select('id, role, content, created_at')
+        .eq('session_id', sessionId)
+        .order('created_at', { ascending: true });
+
+      if (error) {
+        console.error('Error loading messages:', error);
+        throw error;
+      }
+
+      setMessages((data || []) as Message[]);
+    } catch (error: any) {
+      console.error('Failed to load messages:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load messages',
+        variant: 'destructive'
+      });
+    }
   };
 
   const createNewSession = async () => {
@@ -188,7 +239,7 @@ const AIChatbot = () => {
             },
             body: JSON.stringify({
               message: userMessage,
-              sessionId: null  // No persistence for now
+              sessionId: currentSessionId  // Use current session
             }),
             signal: controller.signal
           }
@@ -225,14 +276,26 @@ const AIChatbot = () => {
         throw fetchError;
       }
 
-      // Add AI response to messages (in-memory only, no persistence)
-      const aiMessage: Message = {
-        id: 'ai-' + Date.now(),
-        role: 'assistant',
-        content: result.response,
-        created_at: new Date().toISOString()
-      };
-      setMessages(prev => [...prev, aiMessage]);
+      // Update current session ID if a new one was created
+      if (result.sessionId && result.sessionId !== currentSessionId) {
+        setCurrentSessionId(result.sessionId);
+        // Reload sessions to include the new one
+        await loadSessions();
+      }
+
+      // Reload messages from database to ensure consistency
+      if (result.sessionId) {
+        await loadMessages(result.sessionId);
+      } else {
+        // Fallback: add AI response to UI (shouldn't happen with proper backend)
+        const aiMessage: Message = {
+          id: 'ai-' + Date.now(),
+          role: 'assistant',
+          content: result.response,
+          created_at: new Date().toISOString()
+        };
+        setMessages(prev => [...prev, aiMessage]);
+      }
 
     } catch (error: any) {
       console.error('❌ CATCH BLOCK - Error sending message:', error);
