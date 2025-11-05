@@ -76,7 +76,7 @@ const Hero = () => {
           </h1>
 
           {/* Subtitle */}
-          <p className="text-xl md:text-2xl text-foreground/90 max-w-3xl mx-auto mb-8 leading-relaxed drop-shadow">
+          <p className="text-xl md:text-2xl text-foreground/90 max-w-3xl mx-auto mb-8 leading-relaxed px-6 py-3 rounded-xl backdrop-blur-sm bg-background/50">
             Revolutionary NyaAI platform that combines artificial intelligence 
             with legal expertise to democratize access to justice.
           </p>
@@ -85,18 +85,18 @@ const Hero = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto mb-10">
             <div className="glass p-4 rounded-lg hover-lift">
               <Brain className="h-8 w-8 text-primary mx-auto mb-2" />
-              <h3 className="font-semibold text-foreground">AI Legal Assistant</h3>
-              <p className="text-sm text-muted-foreground">24/7 intelligent legal guidance</p>
+              <h3 className="font-bold text-foreground text-lg">AI Legal Assistant</h3>
+              <p className="text-base text-foreground/80 font-semibold">24/7 intelligent legal guidance</p>
             </div>
             <div className="glass p-4 rounded-lg hover-lift">
               <Shield className="h-8 w-8 text-accent mx-auto mb-2" />
-              <h3 className="font-semibold text-foreground">Document Analysis</h3>
-              <p className="text-sm text-muted-foreground">Instant legal document insights</p>
+              <h3 className="font-bold text-foreground text-lg">Document Analysis</h3>
+              <p className="text-base text-foreground/80 font-semibold">Instant legal document insights</p>
             </div>
             <div className="glass p-4 rounded-lg hover-lift">
               <Sparkles className="h-8 w-8 text-primary-glow mx-auto mb-2" />
-              <h3 className="font-semibold text-foreground">Expert Network</h3>
-              <p className="text-sm text-muted-foreground">Connect with qualified lawyers</p>
+              <h3 className="font-bold text-foreground text-lg">Expert Network</h3>
+              <p className="text-base text-foreground/80 font-semibold">Connect with qualified lawyers</p>
             </div>
           </div>
 

@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTheme } from '@/components/theme-provider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,9 +14,15 @@ import { Scale, UserCheck, Briefcase, Home } from 'lucide-react';
 
 const Auth = () => {
   const { signIn, signUp, user } = useAuth();
+  const { setTheme } = useTheme();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+
+  // Force dark theme on auth page
+  React.useEffect(() => {
+    setTheme('dark');
+  }, [setTheme]);
 
   // Redirect if already logged in
   React.useEffect(() => {
@@ -147,7 +154,7 @@ const Auth = () => {
   };
 
   return (
-    <div className="relative min-h-screen flex items-center justify-center p-4 overflow-hidden">
+    <div className="relative min-h-screen flex items-center justify-center p-4 overflow-hidden bg-black">
       {/* Spline 3D Background */}
       <div className="absolute inset-0 z-0">
         <iframe 
@@ -158,7 +165,7 @@ const Auth = () => {
           className="w-full h-full"
         />
       </div>
-      <div className="absolute inset-0 bg-background/10 z-[1]" />
+      <div className="absolute inset-0 bg-black/40 z-[1]" />
       
       <div className="relative z-10 w-full max-w-md">
         <div className="text-center mb-8">

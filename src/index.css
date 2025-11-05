@@ -8,15 +8,15 @@ All colors MUST be HSL for consistency across light/dark modes.
 
 @layer base {
   :root {
-    /* Light Theme - Default */
-    --background: 0 0% 100%;
+    /* Light Theme - Darker Purple */
+    --background: 270 50% 88%;
     --foreground: 222 47% 11%;
 
     /* Card & Surface Colors */
-    --card: 0 0% 100%;
+    --card: 270 45% 92%;
     --card-foreground: 222 47% 11%;
 
-    --popover: 0 0% 100%;
+    --popover: 270 45% 92%;
     --popover-foreground: 222 47% 11%;
 
     /* Neon Purple Primary */
@@ -25,12 +25,12 @@ All colors MUST be HSL for consistency across light/dark modes.
     --primary-glow: 290 80% 70%;
 
     /* Professional Secondary */
-    --secondary: 220 14% 96%;
+    --secondary: 270 45% 82%;
     --secondary-foreground: 222 47% 11%;
 
     /* Muted Tones */
-    --muted: 220 14% 96%;
-    --muted-foreground: 220 9% 46%;
+    --muted: 270 35% 80%;
+    --muted-foreground: 270 20% 35%;
 
     /* Electric Purple Accent */
     --accent: 320 76% 56%;
@@ -44,8 +44,8 @@ All colors MUST be HSL for consistency across light/dark modes.
     --success-foreground: 0 0% 100%;
 
     /* Interactive Elements */
-    --border: 220 13% 91%;
-    --input: 220 13% 91%;
+    --border: 270 40% 78%;
+    --input: 270 40% 85%;
     --ring: 280 100% 60%;
 
     /* Gradients */
@@ -169,6 +169,21 @@ All colors MUST be HSL for consistency across light/dark modes.
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
+  }
+  
+  /* Light mode gradient background */
+  body:not(.dark) {
+    background: linear-gradient(135deg, 
+      hsl(270 50% 88%) 0%, 
+      hsl(280 48% 85%) 25%,
+      hsl(290 52% 87%) 50%,
+      hsl(280 48% 85%) 75%,
+      hsl(270 50% 88%) 100%);
+    background-attachment: fixed;
+  }
+  
+  /* Dark mode gradient background */
+  body.dark {
     background-image: 
       radial-gradient(circle at 20% 80%, hsl(280 100% 60% / 0.05) 0%, transparent 50%),
       radial-gradient(circle at 80% 20%, hsl(290 80% 70% / 0.05) 0%, transparent 50%);
