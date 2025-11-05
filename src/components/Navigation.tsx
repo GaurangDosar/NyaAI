@@ -1,14 +1,16 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Scale, Shield, Brain, Users } from "lucide-react";
+import { Menu, X, Scale, Moon, Sun } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTheme } from "@/contexts/ThemeContext";
 
 const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const { user, signOut } = useAuth();
+  const { theme, toggleTheme } = useTheme();
 
   const navItems = [
     { name: "Home", href: "#home" },
@@ -66,6 +68,18 @@ const Navigation = () => {
 
           {/* Desktop Auth Buttons */}
           <div className="hidden md:flex items-center space-x-4">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleTheme}
+              className="hover-lift"
+            >
+              {theme === 'light' ? (
+                <Moon className="h-5 w-5" />
+              ) : (
+                <Sun className="h-5 w-5" />
+              )}
+            </Button>
             {user ? (
               <>
                 <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')}>
@@ -113,6 +127,24 @@ const Navigation = () => {
               </button>
             ))}
             <div className="flex flex-col space-y-2 pt-4 px-3">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start"
+                onClick={toggleTheme}
+              >
+                {theme === 'light' ? (
+                  <>
+                    <Moon className="h-4 w-4 mr-2" />
+                    Dark Mode
+                  </>
+                ) : (
+                  <>
+                    <Sun className="h-4 w-4 mr-2" />
+                    Light Mode
+                  </>
+                )}
+              </Button>
               {user ? (
                 <>
                   <Button variant="ghost" size="sm" className="w-full" onClick={() => navigate('/dashboard')}>
