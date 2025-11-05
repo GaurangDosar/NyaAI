@@ -224,7 +224,10 @@ const AIChatbot = () => {
       
       console.log('Making fetch request to Edge Function...');
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
+      const timeoutId = setTimeout(() => {
+        controller.abort();
+        console.log('Request timed out after 120 seconds');
+      }, 120000); // 120 second timeout for AI processing
       
       let response;
       let result;
@@ -239,7 +242,7 @@ const AIChatbot = () => {
             },
             body: JSON.stringify({
               message: userMessage,
-              sessionId: currentSessionId  // Use current session
+              sessionId: currentSessionId
             }),
             signal: controller.signal
           }

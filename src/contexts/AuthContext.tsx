@@ -83,40 +83,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     let mounted = true;
-    let timeoutId: NodeJS.Timeout;
 
-    // Safety timeout - if auth doesn't load in 5 seconds, stop loading
-    timeoutId = setTimeout(() => {
-      if (mounted && loading) {
-        console.warn('AuthContext - Timeout: Force stopping loading after 5s');
-        setLoading(false);
-      }
-    }, 5000);
-
-    // Check for existing session on mount IMMEDIATELY
+    // Check for existing session on mount
     const initializeAuth = async () => {
       try {
-        console.log('AuthContext - Starting initialization...');
-        console.log('AuthContext - Supabase connection check');
-        const startTime = Date.now();
         const { data: { session }, error } = await supabase.auth.getSession();
-        console.log('AuthContext - getSession took:', Date.now() - startTime, 'ms');
         
         if (!mounted) return;
 
         if (error) {
-          console.error('AuthContext - Error getting session:', error);
-          clearTimeout(timeoutId);
+          console.error('Error getting session:', error);
           setLoading(false);
           return;
         }
 
-        console.log('AuthContext - Session check:', session?.user?.email || 'No user');
         setSession(session);
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          // Fetch role and profile in parallel for faster loading
+          // Fetch role and profile in parallel
           const [role, profileData] = await Promise.all([
             fetchUserRole(session.user.id),
             fetchProfile(session.user.id)
@@ -124,35 +109,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           
           if (!mounted) return;
           
-          console.log('AuthContext - Loaded - role:', role, 'profile:', profileData?.name);
           setUserRole(role);
           setProfile(profileData);
         }
       } catch (error) {
-        console.error('AuthContext - Initialization error:', error);
+        console.error('Initialization error:', error);
       } finally {
         if (mounted) {
-          console.log('AuthContext - Initialization complete, loading: false');
-          clearTimeout(timeoutId);
           setLoading(false);
         }
       }
     };
 
-    // Start initialization immediately
+    // Start initialization
     initializeAuth();
 
-    // Set up auth state listener for future changes
+    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return;
         
-        console.log('AuthContext - Auth state changed:', event);
         setSession(session);
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          // Fetch in parallel
           const [role, profileData] = await Promise.all([
             fetchUserRole(session.user.id),
             fetchProfile(session.user.id)
@@ -171,7 +151,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     return () => {
       mounted = false;
-      clearTimeout(timeoutId);
       subscription.unsubscribe();
     };
   }, []);
