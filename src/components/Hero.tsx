@@ -2,10 +2,19 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, Sparkles, Shield, Brain, LayoutDashboard } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { useTheme } from "@/components/theme-provider";
+import { useEffect, useState } from "react";
 
 const Hero = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { theme } = useTheme();
+  const [splineKey, setSplineKey] = useState(0);
+
+  // Force iframe reload when theme changes
+  useEffect(() => {
+    setSplineKey(prev => prev + 1);
+  }, [theme]);
 
   const handleGetStarted = () => {
     if (user) {
@@ -26,11 +35,15 @@ const Hero = () => {
       {/* Spline 3D Background */}
       <div className="absolute inset-0 z-0">
         <iframe 
+          key={splineKey}
           src="https://my.spline.design/worldplanet-CMjrskBh7SPlIOLUf4luIIay/" 
           frameBorder="0" 
           width="100%" 
           height="100%"
           className="w-full h-full"
+          style={{
+            filter: theme === 'light' ? 'brightness(1.3) contrast(0.9)' : 'brightness(1) contrast(1)'
+          }}
         />
       </div>
       <div className="absolute inset-0 bg-background/10 z-[1]" />
