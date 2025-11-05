@@ -47,17 +47,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .from('user_roles')
         .select('role')
         .eq('user_id', userId)
-        .single();
+        .maybeSingle(); // Use maybeSingle to handle no rows gracefully
 
       if (error) {
-        console.error('Error fetching user role:', error);
-        return null;
+        console.warn('Could not fetch user role:', error.message);
+        return 'user'; // Default to 'user' role
       }
 
-      return data?.role as 'user' | 'lawyer' | null;
+      return (data?.role as 'user' | 'lawyer') || 'user';
     } catch (error) {
-      console.error('Exception in fetchUserRole:', error);
-      return null;
+      console.warn('Exception in fetchUserRole:', error);
+      return 'user'; // Default to 'user' role
     }
   };
 
@@ -67,32 +67,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .from('profiles')
         .select('*')
         .eq('user_id', userId)
-        .single();
+        .maybeSingle(); // Use maybeSingle to handle no rows gracefully
 
       if (error) {
-        console.error('Error fetching profile:', error);
+        console.warn('Could not fetch profile:', error.message);
         return null;
       }
 
       return data;
     } catch (error) {
-      console.error('Exception in fetchProfile:', error);
+      console.warn('Exception in fetchProfile:', error);
       return null;
     }
   };
 
   useEffect(() => {
     let mounted = true;
+    let timeoutId: NodeJS.Timeout;
+
+    // Safety timeout - if auth doesn't load in 10 seconds, stop loading
+    timeoutId = setTimeout(() => {
+      if (mounted && loading) {
+        console.warn('Auth initialization timeout - forcing completion');
+        setLoading(false);
+      }
+    }, 10000);
 
     // Check for existing session on mount
     const initializeAuth = async () => {
       try {
+        console.log('🔐 AuthContext: Starting initialization...');
         const { data: { session }, error } = await supabase.auth.getSession();
+        console.log('🔐 AuthContext: Got session:', session ? 'logged in' : 'not logged in');
         
         if (!mounted) return;
 
         if (error) {
           console.error('Error getting session:', error);
+          clearTimeout(timeoutId);
           setLoading(false);
           return;
         }
@@ -101,10 +113,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          // Fetch role and profile in parallel
-          const [role, profileData] = await Promise.all([
-            fetchUserRole(session.user.id),
-            fetchProfile(session.user.id)
+          // Fetch role and profile in parallel with timeout protection
+          const [role, profileData] = await Promise.race([
+            Promise.all([
+              fetchUserRole(session.user.id),
+              fetchProfile(session.user.id)
+            ]),
+            new Promise<[null, null]>((resolve) => 
+              setTimeout(() => resolve([null, null]), 5000)
+            )
           ]);
           
           if (!mounted) return;
@@ -116,6 +133,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.error('Initialization error:', error);
       } finally {
         if (mounted) {
+          clearTimeout(timeoutId);
           setLoading(false);
         }
       }
@@ -151,6 +169,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     return () => {
       mounted = false;
+      clearTimeout(timeoutId);
       subscription.unsubscribe();
     };
   }, []);
