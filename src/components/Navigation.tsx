@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Menu, X, Scale, Shield, Brain, Users } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -66,6 +67,7 @@ const Navigation = () => {
 
           {/* Desktop Auth Buttons */}
           <div className="hidden md:flex items-center space-x-4">
+            <ThemeToggle />
             {user ? (
               <>
                 <Button variant="ghost" size="sm" onClick={() => navigate('/dashboard')}>
@@ -88,7 +90,8 @@ const Navigation = () => {
           </div>
 
           {/* Mobile menu button */}
-          <div className="md:hidden">
+          <div className="md:hidden flex items-center space-x-2">
+            <ThemeToggle />
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="text-foreground hover:text-primary transition-smooth"

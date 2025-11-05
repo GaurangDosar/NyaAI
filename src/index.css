@@ -8,7 +8,71 @@ All colors MUST be HSL for consistency across light/dark modes.
 
 @layer base {
   :root {
-    /* Futuristic Dark Theme - Primary */
+    /* Light Theme - Darker Purple */
+    --background: 270 50% 88%;
+    --foreground: 222 47% 11%;
+
+    /* Card & Surface Colors */
+    --card: 270 45% 92%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 270 45% 92%;
+    --popover-foreground: 222 47% 11%;
+
+    /* Neon Purple Primary */
+    --primary: 280 100% 60%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 290 80% 70%;
+
+    /* Professional Secondary */
+    --secondary: 270 45% 82%;
+    --secondary-foreground: 222 47% 11%;
+
+    /* Muted Tones */
+    --muted: 270 35% 80%;
+    --muted-foreground: 270 20% 35%;
+
+    /* Electric Purple Accent */
+    --accent: 320 76% 56%;
+    --accent-foreground: 0 0% 100%;
+
+    /* Status Colors */
+    --destructive: 0 85% 60%;
+    --destructive-foreground: 0 0% 100%;
+    
+    --success: 120 65% 45%;
+    --success-foreground: 0 0% 100%;
+
+    /* Interactive Elements */
+    --border: 270 40% 78%;
+    --input: 270 40% 85%;
+    --ring: 280 100% 60%;
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(280 100% 60%), hsl(290 80% 70%));
+    --gradient-secondary: linear-gradient(135deg, hsl(220 14% 96%), hsl(220 14% 92%));
+    --gradient-glow: linear-gradient(135deg, hsl(280 100% 60% / 0.1), hsl(290 80% 70% / 0.1));
+
+    /* Shadows */
+    --shadow-neon: 0 0 20px hsl(280 100% 60% / 0.3);
+    --shadow-glow: 0 10px 40px -10px hsl(280 100% 60% / 0.2);
+    --shadow-card: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+
+    /* Border Radius */
+    --radius: 0.75rem;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    /* Futuristic Dark Theme */
     --background: 222 47% 4%;
     --foreground: 200 20% 98%;
 
@@ -60,25 +124,6 @@ All colors MUST be HSL for consistency across light/dark modes.
 
     /* Border Radius */
     --radius: 0.75rem;
-
-    --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
-  }
-
-  .dark {
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
 
@@ -124,6 +169,21 @@ All colors MUST be HSL for consistency across light/dark modes.
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
+  }
+  
+  /* Light mode gradient background */
+  body:not(.dark) {
+    background: linear-gradient(135deg, 
+      hsl(270 50% 88%) 0%, 
+      hsl(280 48% 85%) 25%,
+      hsl(290 52% 87%) 50%,
+      hsl(280 48% 85%) 75%,
+      hsl(270 50% 88%) 100%);
+    background-attachment: fixed;
+  }
+  
+  /* Dark mode gradient background */
+  body.dark {
     background-image: 
       radial-gradient(circle at 20% 80%, hsl(280 100% 60% / 0.05) 0%, transparent 50%),
       radial-gradient(circle at 80% 20%, hsl(290 80% 70% / 0.05) 0%, transparent 50%);
