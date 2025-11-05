@@ -47,17 +47,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .from('user_roles')
         .select('role')
         .eq('user_id', userId)
-        .maybeSingle(); // Use maybeSingle to handle no rows gracefully
+        .single();
 
       if (error) {
-        console.warn('Could not fetch user role:', error.message);
-        return 'user'; // Default to 'user' role
+        console.error('Error fetching user role:', error);
+        return null;
       }
 
-      return (data?.role as 'user' | 'lawyer') || 'user';
+      return data?.role as 'user' | 'lawyer' | null;
     } catch (error) {
-      console.warn('Exception in fetchUserRole:', error);
-      return 'user'; // Default to 'user' role
+      console.error('Exception in fetchUserRole:', error);
+      return null;
     }
   };
 
@@ -67,16 +67,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .from('profiles')
         .select('*')
         .eq('user_id', userId)
-        .maybeSingle(); // Use maybeSingle to handle no rows gracefully
+        .single();
 
       if (error) {
-        console.warn('Could not fetch profile:', error.message);
+        console.error('Error fetching profile:', error);
         return null;
       }
 
       return data;
     } catch (error) {
-      console.warn('Exception in fetchProfile:', error);
+      console.error('Exception in fetchProfile:', error);
       return null;
     }
   };
@@ -85,72 +85,74 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     let mounted = true;
     let timeoutId: NodeJS.Timeout;
 
-    // Safety timeout - if auth doesn't load in 10 seconds, stop loading
+    // Safety timeout - if auth doesn't load in 5 seconds, stop loading
     timeoutId = setTimeout(() => {
       if (mounted && loading) {
-        console.warn('Auth initialization timeout - forcing completion');
+        console.warn('AuthContext - Timeout: Force stopping loading after 5s');
         setLoading(false);
       }
-    }, 10000);
+    }, 5000);
 
-    // Check for existing session on mount
+    // Check for existing session on mount IMMEDIATELY
     const initializeAuth = async () => {
       try {
-        console.log('🔐 AuthContext: Starting initialization...');
+        console.log('AuthContext - Starting initialization...');
+        console.log('AuthContext - Supabase connection check');
+        const startTime = Date.now();
         const { data: { session }, error } = await supabase.auth.getSession();
-        console.log('🔐 AuthContext: Got session:', session ? 'logged in' : 'not logged in');
+        console.log('AuthContext - getSession took:', Date.now() - startTime, 'ms');
         
         if (!mounted) return;
 
         if (error) {
-          console.error('Error getting session:', error);
+          console.error('AuthContext - Error getting session:', error);
           clearTimeout(timeoutId);
           setLoading(false);
           return;
         }
 
+        console.log('AuthContext - Session check:', session?.user?.email || 'No user');
         setSession(session);
         setUser(session?.user ?? null);
 
         if (session?.user) {
-          // Fetch role and profile in parallel with timeout protection
-          const [role, profileData] = await Promise.race([
-            Promise.all([
-              fetchUserRole(session.user.id),
-              fetchProfile(session.user.id)
-            ]),
-            new Promise<[null, null]>((resolve) => 
-              setTimeout(() => resolve([null, null]), 5000)
-            )
+          // Fetch role and profile in parallel for faster loading
+          const [role, profileData] = await Promise.all([
+            fetchUserRole(session.user.id),
+            fetchProfile(session.user.id)
           ]);
           
           if (!mounted) return;
           
+          console.log('AuthContext - Loaded - role:', role, 'profile:', profileData?.name);
           setUserRole(role);
           setProfile(profileData);
         }
       } catch (error) {
-        console.error('Initialization error:', error);
+        console.error('AuthContext - Initialization error:', error);
       } finally {
         if (mounted) {
+          console.log('AuthContext - Initialization complete, loading: false');
           clearTimeout(timeoutId);
           setLoading(false);
         }
       }
     };
 
-    // Start initialization
+    // Start initialization immediately
     initializeAuth();
 
-    // Set up auth state listener
+    // Set up auth state listener for future changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (!mounted) return;
         
+        console.log('AuthContext - Auth state changed:', event);
         setSession(session);
         setUser(session?.user ?? null);
 
         if (session?.user) {
+          // Fetch in parallel
           const [role, profileData] = await Promise.all([
             fetchUserRole(session.user.id),
             fetchProfile(session.user.id)
