@@ -1,0 +1,137 @@
+import { Button } from "@/components/ui/button";
+import { ArrowRight, Sparkles, Shield, Brain, LayoutDashboard } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { useTheme } from "@/components/theme-provider";
+import { useEffect, useState } from "react";
+
+const Hero = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { theme } = useTheme();
+  const [splineKey, setSplineKey] = useState(0);
+
+  // Force iframe reload when theme changes
+  useEffect(() => {
+    setSplineKey(prev => prev + 1);
+  }, [theme]);
+
+  const handleGetStarted = () => {
+    if (user) {
+      navigate('/dashboard');
+    } else {
+      navigate('/auth');
+    }
+  };
+
+  const handleWatchDemo = () => {
+    // Scroll to features section
+    const featuresSection = document.querySelector('#features');
+    featuresSection?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  return (
+    <section id="home" className="relative min-h-screen flex items-center justify-center overflow-hidden">
+      {/* Spline 3D Background */}
+      <div className="absolute inset-0 z-0">
+        <iframe 
+          key={splineKey}
+          src="https://my.spline.design/worldplanet-CMjrskBh7SPlIOLUf4luIIay/" 
+          frameBorder="0" 
+          width="100%" 
+          height="100%"
+          className="w-full h-full"
+          style={{
+            filter: theme === 'light' ? 'brightness(1.3) contrast(0.9)' : 'brightness(1) contrast(1)'
+          }}
+        />
+      </div>
+      <div className="absolute inset-0 bg-background/10 z-[1]" />
+      
+      {/* Floating Elements */}
+      <div className="absolute top-20 left-10 opacity-20 z-[2]">
+        <Shield className="h-12 w-12 text-primary animate-float" style={{ animationDelay: '0s' }} />
+      </div>
+      <div className="absolute top-40 right-20 opacity-20 z-[2]">
+        <Brain className="h-16 w-16 text-accent animate-float" style={{ animationDelay: '1s' }} />
+      </div>
+      <div className="absolute bottom-40 left-20 opacity-20 z-[2]">
+        <Sparkles className="h-10 w-10 text-primary-glow animate-float" style={{ animationDelay: '2s' }} />
+      </div>
+
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+        <div className="animate-fade-in">
+          {/* Badge */}
+          <div className="inline-flex items-center px-4 py-2 rounded-full glass border border-primary/20 mb-8">
+            <Sparkles className="h-4 w-4 text-primary mr-2" />
+            <span className="text-sm text-primary font-medium">Powered by Advanced AI</span>
+          </div>
+
+          {/* Main Heading */}
+          <h1 className="text-5xl md:text-7xl lg:text-8xl font-bold mb-6 leading-tight">
+            <span className="block text-foreground drop-shadow-lg">Empowering</span>
+            <span className="block bg-gradient-primary bg-clip-text text-transparent drop-shadow-lg">
+              Justice Through AI
+            </span>
+          </h1>
+
+          {/* Subtitle */}
+          <p className="text-xl md:text-2xl text-foreground/90 max-w-3xl mx-auto mb-8 leading-relaxed px-6 py-3 rounded-xl backdrop-blur-sm bg-background/50">
+            Revolutionary NyaAI platform that combines artificial intelligence 
+            with legal expertise to democratize access to justice.
+          </p>
+
+          {/* Feature Highlights */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto mb-10">
+            <div className="glass p-4 rounded-lg hover-lift">
+              <Brain className="h-8 w-8 text-primary mx-auto mb-2" />
+              <h3 className="font-bold text-foreground text-lg">AI Legal Assistant</h3>
+              <p className="text-base text-foreground/80 font-semibold">24/7 intelligent legal guidance</p>
+            </div>
+            <div className="glass p-4 rounded-lg hover-lift">
+              <Shield className="h-8 w-8 text-accent mx-auto mb-2" />
+              <h3 className="font-bold text-foreground text-lg">Document Analysis</h3>
+              <p className="text-base text-foreground/80 font-semibold">Instant legal document insights</p>
+            </div>
+            <div className="glass p-4 rounded-lg hover-lift">
+              <Sparkles className="h-8 w-8 text-primary-glow mx-auto mb-2" />
+              <h3 className="font-bold text-foreground text-lg">Expert Network</h3>
+              <p className="text-base text-foreground/80 font-semibold">Connect with qualified lawyers</p>
+            </div>
+          </div>
+
+          {/* CTA Buttons */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Button variant="hero" size="xl" className="group" onClick={handleGetStarted}>
+              {user ? (
+                <>
+                  <LayoutDashboard className="mr-2 h-5 w-5" />
+                  Go to Dashboard
+                </>
+              ) : (
+                <>
+                  Get Started Free
+                  <ArrowRight className="ml-2 h-5 w-5 group-hover:translate-x-1 transition-transform" />
+                </>
+              )}
+            </Button>
+            <Button variant="neon" size="xl" onClick={handleWatchDemo}>
+              Explore Features
+            </Button>
+          </div>
+
+          {/* Trust Indicators */}
+          <div className="mt-12 flex flex-wrap items-center justify-center gap-8 opacity-60">
+            <div className="text-sm text-muted-foreground">Trusted by 10,000+ users</div>
+            <div className="h-4 w-px bg-border" />
+            <div className="text-sm text-muted-foreground">SOC 2 Compliant</div>
+            <div className="h-4 w-px bg-border" />
+            <div className="text-sm text-muted-foreground">Enterprise Grade Security</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+export default Hero;
