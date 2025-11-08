@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Scale, Shield, Brain, Users } from "lucide-react";
+import { Menu, X, Scale, Shield, Brain, Users, Mail, Linkedin, Github } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -64,7 +64,7 @@ const Navigation = () => {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <div 
-            className="flex items-center space-x-2 cursor-pointer"
+            className="flex items-center space-x-2 cursor-pointer flex-shrink-0"
             onClick={() => {
               // Only navigate to home if user is not a lawyer
               if (userRole !== 'lawyer') {
@@ -82,8 +82,8 @@ const Navigation = () => {
             </span>
           </div>
 
-          {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8">
+          {/* Desktop Navigation - Centered */}
+          <div className="hidden md:flex items-center space-x-8 absolute left-1/2 transform -translate-x-1/2">
             {/* Only show navigation items if user is not a lawyer */}
             {userRole !== 'lawyer' && navItems.map((item) => (
               <button
@@ -97,7 +97,7 @@ const Navigation = () => {
           </div>
 
           {/* Desktop Auth Buttons */}
-          <div className="hidden md:flex items-center space-x-4">
+          <div className="hidden md:flex items-center space-x-4 flex-shrink-0">
             <ThemeToggle />
             {user ? (
               <>

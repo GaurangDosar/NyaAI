@@ -39,50 +39,90 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    const { lawyer_id, text, attachments = [], is_case_request = false } = await req.json();
+    const { lawyer_id, text, attachments = [], is_case_request = false, conversation_id } = await req.json();
 
-    if (!lawyer_id || !text?.trim()) {
-      throw new Error('Missing required fields: lawyer_id and text');
+    if (!text?.trim()) {
+      throw new Error('Missing required field: text');
     }
 
-    console.log('Sending message from user', user.id, 'to lawyer', lawyer_id);
+    console.log('Sending message from user', user.id);
 
-    // Check if conversation exists
-    let { data: conversation, error: convError } = await supabaseAdmin
-      .from('conversations')
-      .select('*')
-      .eq('user_id', user.id)
-      .eq('lawyer_id', lawyer_id)
-      .maybeSingle();
+    let conversation;
 
-    if (convError) {
-      console.error('Error checking conversation:', convError);
-    }
-
-    // Create conversation if it doesn't exist
-    if (!conversation) {
-      const { data: newConv, error: createError } = await supabaseAdmin
+    // If conversation_id is provided, use existing conversation (for lawyer replies)
+    if (conversation_id) {
+      const { data: existingConv, error: convError } = await supabaseAdmin
         .from('conversations')
-        .insert({
-          user_id: user.id,
-          lawyer_id: lawyer_id,
-          status: is_case_request ? 'pending' : 'active',
-          last_message_at: new Date().toISOString()
-        })
-        .select()
+        .select('*')
+        .eq('id', conversation_id)
         .single();
 
-      if (createError) {
-        console.error('Error creating conversation:', createError);
-        throw new Error('Failed to create conversation: ' + createError.message);
+      if (convError || !existingConv) {
+        throw new Error('Conversation not found');
       }
 
-      conversation = newConv;
+      conversation = existingConv;
+    } else {
+      // For new messages from clients, lawyer_id is required
+      if (!lawyer_id) {
+        throw new Error('Missing required field: lawyer_id');
+      }
+
+      // Verify lawyer exists in auth.users
+      const { data: lawyerUser, error: lawyerError } = await supabaseAdmin.auth.admin.getUserById(lawyer_id);
+
+      if (lawyerError || !lawyerUser) {
+        console.error('Lawyer not found in auth.users:', lawyer_id, lawyerError);
+        throw new Error('Lawyer not found. Please ensure the lawyer exists.');
+      }
+
+      console.log('Verified lawyer exists:', lawyerUser.user.id);
+
+      // Check if conversation exists
+      let { data: existingConv, error: convError } = await supabaseAdmin
+        .from('conversations')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('lawyer_id', lawyer_id)
+        .maybeSingle();
+
+      if (convError) {
+        console.error('Error checking conversation:', convError);
+      }
+
+      // Create conversation if it doesn't exist
+      if (!existingConv) {
+        const { data: newConv, error: createError } = await supabaseAdmin
+          .from('conversations')
+          .insert({
+            user_id: user.id,
+            lawyer_id: lawyer_id,
+            status: is_case_request ? 'pending' : 'active',
+            last_message_at: new Date().toISOString()
+          })
+          .select()
+          .single();
+
+        if (createError) {
+          console.error('Error creating conversation:', createError);
+          throw new Error('Failed to create conversation: ' + createError.message);
+        }
+
+        existingConv = newConv;
+      }
+
+      conversation = existingConv;
     }
 
-    // Insert message into lawyer_messages table
+    // Update conversation last_message_at
+    await supabaseAdmin
+      .from('conversations')
+      .update({ last_message_at: new Date().toISOString() })
+      .eq('id', conversation.id);
+
+    // Insert message into messages table
     const { data: message, error: messageError } = await supabaseAdmin
-      .from('lawyer_messages')
+      .from('messages')
       .insert({
         conversation_id: conversation.id,
         sender_id: user.id,

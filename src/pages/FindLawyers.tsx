@@ -31,7 +31,10 @@ import {
   Phone,
   Mail,
   Maximize2,
-  Minimize2
+  Minimize2,
+  Paperclip,
+  FileText,
+  Download
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -100,7 +103,14 @@ const FindLawyers = () => {
     id: string;
     lawyer_id: string;
     lawyer: Lawyer;
-    messages: Array<{ id: string; text: string; sender: 'me' | 'lawyer'; timestamp: Date; sender_id: string }>;
+    messages: Array<{ 
+      id: string; 
+      text: string; 
+      sender: 'me' | 'lawyer'; 
+      timestamp: Date; 
+      sender_id: string;
+      attachments?: Array<{ name: string; url: string; type: string }>;
+    }>;
     unreadCount: number;
   }>>([]);
   const [openChats, setOpenChats] = useState<Set<string>>(new Set());
@@ -108,6 +118,8 @@ const FindLawyers = () => {
   const [showMessagingPanel, setShowMessagingPanel] = useState(false);
   const [activeMessages, setActiveMessages] = useState<Map<string, string>>(new Map());
   const [loadingConversations, setLoadingConversations] = useState(false);
+  const [uploadingFiles, setUploadingFiles] = useState<Map<string, boolean>>(new Map());
+  const fileInputRefs = useState<Map<string, HTMLInputElement | null>>(new Map())[0];
 
   const perPage = 12;
   const totalPages = Math.ceil(total / perPage);
@@ -253,9 +265,9 @@ const FindLawyers = () => {
     setSelectedLawyer(null); // Close the profile modal
   };
 
-  const handleSendMessage = async (lawyerId: string) => {
+  const handleSendMessage = async (lawyerId: string, attachments: Array<{ name: string; url: string; type: string }> = []) => {
     const messageText = activeMessages.get(lawyerId) || '';
-    if (!messageText.trim()) return;
+    if (!messageText.trim() && attachments.length === 0) return;
     
     if (!user || !session?.access_token) {
       toast({
@@ -268,8 +280,19 @@ const FindLawyers = () => {
 
     console.log('Sending message to lawyer:', lawyerId);
     console.log('Message text:', messageText);
+    console.log('Attachments:', attachments);
     console.log('User:', user.id);
     console.log('Session token exists:', !!session.access_token);
+
+    // Check if conversation already exists and is active
+    const existingConv = conversations.find(c => c.lawyer_id === lawyerId);
+    const isFirstMessage = !existingConv || existingConv.id.startsWith('temp-');
+    const conversationStatus = existingConv && !existingConv.id.startsWith('temp-') 
+      ? conversations.find(c => c.id === existingConv.id)?.messages[0]?.sender // Check if it's approved
+      : undefined;
+
+    // If this is the first message, it's a request
+    const isCaseRequest = isFirstMessage;
 
     try {
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-message`;
@@ -284,9 +307,9 @@ const FindLawyers = () => {
         },
         body: JSON.stringify({
           lawyer_id: lawyerId,
-          text: messageText,
-          attachments: [],
-          is_case_request: false
+          text: messageText || '📎 Attachment',
+          attachments: attachments,
+          is_case_request: isCaseRequest
         }),
       });
 
@@ -315,7 +338,8 @@ const FindLawyers = () => {
               text: data.message.text,
               sender: 'me' as const,
               timestamp: new Date(data.message.created_at),
-              sender_id: user.id
+              sender_id: user.id,
+              attachments: attachments.length > 0 ? attachments : undefined
             }]
           };
           return updated;
@@ -324,8 +348,10 @@ const FindLawyers = () => {
       });
       
       toast({
-        title: 'Message Sent',
-        description: 'Your message has been sent successfully',
+        title: isCaseRequest ? 'Request Sent' : 'Message Sent',
+        description: isCaseRequest 
+          ? 'Your request has been sent to the lawyer. They will respond soon.' 
+          : 'Your message has been sent successfully',
       });
       
       // Clear message input for this chat
@@ -338,6 +364,101 @@ const FindLawyers = () => {
         title: 'Error',
         description: error instanceof Error ? error.message : 'Failed to send message. Please try again.',
         variant: 'destructive',
+      });
+    }
+  };
+
+  const handleFileUpload = async (lawyerId: string, event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    if (!user) {
+      toast({
+        title: 'Authentication Required',
+        description: 'Please log in to upload files',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Set uploading state
+    setUploadingFiles(prev => {
+      const newMap = new Map(prev);
+      newMap.set(lawyerId, true);
+      return newMap;
+    });
+
+    try {
+      const uploadedFiles: Array<{ name: string; url: string; type: string }> = [];
+
+      for (const file of Array.from(files)) {
+        // Validate file size (max 10MB)
+        if (file.size > 10 * 1024 * 1024) {
+          toast({
+            title: 'File Too Large',
+            description: `${file.name} exceeds 10MB limit`,
+            variant: 'destructive',
+          });
+          continue;
+        }
+
+        // Generate unique filename
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${user.id}/${lawyerId}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+
+        // Upload to Supabase Storage
+        const { data, error } = await supabase.storage
+          .from('lawyer-chat-attachments')
+          .upload(fileName, file, {
+            cacheControl: '3600',
+            upsert: false
+          });
+
+        if (error) {
+          console.error('Error uploading file:', error);
+          toast({
+            title: 'Upload Failed',
+            description: `Failed to upload ${file.name}`,
+            variant: 'destructive',
+          });
+          continue;
+        }
+
+        // Get public URL
+        const { data: urlData } = supabase.storage
+          .from('lawyer-chat-attachments')
+          .getPublicUrl(fileName);
+
+        uploadedFiles.push({
+          name: file.name,
+          url: urlData.publicUrl,
+          type: file.type || 'application/octet-stream'
+        });
+      }
+
+      if (uploadedFiles.length > 0) {
+        // Send message with attachments
+        await handleSendMessage(lawyerId, uploadedFiles);
+      }
+
+      // Clear file input
+      if (event.target) {
+        event.target.value = '';
+      }
+
+    } catch (error) {
+      console.error('Error uploading files:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to upload files. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      // Clear uploading state
+      setUploadingFiles(prev => {
+        const newMap = new Map(prev);
+        newMap.delete(lawyerId);
+        return newMap;
       });
     }
   };
@@ -371,9 +492,9 @@ const FindLawyers = () => {
       
       setLoadingConversations(true);
       try {
-        // Fetch conversations with messages and lawyer profile using RPC or direct query
+        // Fetch conversations with messages and lawyer profile
         const { data: convData, error: convError } = await supabase
-          .from('conversations' as any)
+          .from('conversations')
           .select(`
             id,
             lawyer_id,
@@ -395,7 +516,7 @@ const FindLawyers = () => {
           const { data: profiles } = await supabase
             .from('profiles')
             .select('*')
-            .in('id', lawyerIds);
+            .in('user_id', lawyerIds);
             
           // Fetch lawyer details
           const { data: lawyerProfiles } = await supabase
@@ -406,14 +527,14 @@ const FindLawyers = () => {
           // Fetch messages for all conversations
           const convIds = convData.map((c: any) => c.id);
           const { data: messagesData } = await supabase
-            .from('lawyer_messages' as any)
+            .from('messages')
             .select('*')
             .in('conversation_id', convIds)
             .order('created_at', { ascending: true });
 
           // Transform data to match our conversation structure
           const formattedConversations = convData.map((conv: any) => {
-            const profile = profiles?.find((p: any) => p.id === conv.lawyer_id);
+            const profile = profiles?.find((p: any) => p.user_id === conv.lawyer_id);
             const lawyerProfile = lawyerProfiles?.find((lp: any) => lp.user_id === conv.lawyer_id);
             const convMessages = messagesData?.filter((m: any) => m.conversation_id === conv.id) || [];
             
@@ -435,13 +556,31 @@ const FindLawyers = () => {
                 rating: 4.5,
                 license_number: lawyerProfile?.license_number || ''
               } as Lawyer,
-              messages: convMessages.map((msg: any) => ({
-                id: msg.id,
-                text: msg.text,
-                sender: msg.sender_id === user.id ? 'me' as const : 'lawyer' as const,
-                timestamp: new Date(msg.created_at),
-                sender_id: msg.sender_id
-              })),
+              messages: convMessages.map((msg: any) => {
+                // Parse attachments if it's a JSON string
+                let attachments = undefined;
+                if (msg.attachments) {
+                  try {
+                    const parsed = typeof msg.attachments === 'string' 
+                      ? JSON.parse(msg.attachments) 
+                      : msg.attachments;
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                      attachments = parsed;
+                    }
+                  } catch (e) {
+                    console.error('Error parsing attachments:', e);
+                  }
+                }
+                
+                return {
+                  id: msg.id,
+                  text: msg.text,
+                  sender: msg.sender_id === user.id ? 'me' as const : 'lawyer' as const,
+                  timestamp: new Date(msg.created_at),
+                  sender_id: msg.sender_id,
+                  attachments
+                };
+              }),
               unreadCount: 0
             };
           });
@@ -463,16 +602,31 @@ const FindLawyers = () => {
     if (!user) return;
 
     const channel = supabase
-      .channel('lawyer-messages')
+      .channel('messages-channel')
       .on(
         'postgres_changes',
         {
           event: 'INSERT',
           schema: 'public',
-          table: 'lawyer_messages',
+          table: 'messages',
         },
         (payload) => {
           const newMessage = payload.new as any;
+          
+          // Parse attachments if present
+          let attachments = undefined;
+          if (newMessage.attachments) {
+            try {
+              const parsed = typeof newMessage.attachments === 'string' 
+                ? JSON.parse(newMessage.attachments) 
+                : newMessage.attachments;
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                attachments = parsed;
+              }
+            } catch (e) {
+              console.error('Error parsing attachments:', e);
+            }
+          }
           
           // Update conversations with the new message
           setConversations((prev) => {
@@ -486,7 +640,8 @@ const FindLawyers = () => {
                   text: newMessage.text,
                   sender: newMessage.sender_id === user.id ? 'me' as const : 'lawyer' as const,
                   timestamp: new Date(newMessage.created_at),
-                  sender_id: newMessage.sender_id
+                  sender_id: newMessage.sender_id,
+                  attachments
                 }]
               };
               return updated;
@@ -1195,6 +1350,33 @@ const FindLawyers = () => {
                         )}
                       >
                         <p className="break-words">{msg.text}</p>
+                        
+                        {/* Display attachments */}
+                        {msg.attachments && msg.attachments.length > 0 && (
+                          <div className="mt-2 space-y-1">
+                            {msg.attachments.map((attachment, attIdx) => (
+                              <a
+                                key={attIdx}
+                                href={attachment.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={cn(
+                                  "flex items-center gap-2 p-2 rounded-lg border transition-colors",
+                                  msg.sender === 'me'
+                                    ? "bg-primary-foreground/10 border-primary-foreground/20 hover:bg-primary-foreground/20"
+                                    : "bg-muted border-border hover:bg-muted/80"
+                                )}
+                              >
+                                <FileText className="h-4 w-4 flex-shrink-0" />
+                                <span className="truncate flex-1 text-xs">
+                                  {attachment.name}
+                                </span>
+                                <Download className="h-3 w-3 flex-shrink-0" />
+                              </a>
+                            ))}
+                          </div>
+                        )}
+                        
                         <p className={cn("opacity-70 mt-1", isExpanded ? "text-xs" : "text-[10px]")}>
                           {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                         </p>
@@ -1208,6 +1390,33 @@ const FindLawyers = () => {
             {/* Input Area */}
             <div className="p-3 border-t bg-card">
               <div className="flex gap-2">
+                {/* Hidden file input */}
+                <input
+                  type="file"
+                  ref={(el) => {
+                    fileInputRefs.set(lawyerId, el);
+                  }}
+                  onChange={(e) => handleFileUpload(lawyerId, e)}
+                  multiple
+                  accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.gif"
+                  className="hidden"
+                />
+                
+                {/* File upload button */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const input = fileInputRefs.get(lawyerId);
+                    if (input) input.click();
+                  }}
+                  disabled={uploadingFiles.get(lawyerId)}
+                  className={cn("flex-shrink-0", isExpanded ? "h-10 px-3" : "h-8 px-2")}
+                  title="Attach file"
+                >
+                  <Paperclip className={cn(isExpanded ? "h-4 w-4" : "h-3 w-3")} />
+                </Button>
+                
                 <Input
                   placeholder="Write a message..."
                   value={activeMessages.get(lawyerId) || ''}
@@ -1221,15 +1430,16 @@ const FindLawyers = () => {
                       handleSendMessage(lawyerId);
                     }
                   }}
+                  disabled={uploadingFiles.get(lawyerId)}
                   className={cn("flex-1", isExpanded ? "text-sm h-10" : "text-xs h-8")}
                 />
                 <Button
                   onClick={() => handleSendMessage(lawyerId)}
-                  disabled={!(activeMessages.get(lawyerId) || '').trim()}
+                  disabled={!(activeMessages.get(lawyerId) || '').trim() || uploadingFiles.get(lawyerId)}
                   size="sm"
                   className={cn(isExpanded ? "h-10 px-4 text-sm" : "h-8 px-3 text-xs")}
                 >
-                  Send
+                  {uploadingFiles.get(lawyerId) ? 'Uploading...' : 'Send'}
                 </Button>
               </div>
             </div>

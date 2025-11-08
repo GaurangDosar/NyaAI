@@ -41,7 +41,7 @@ const Footer = () => {
   ];
 
   return (
-    <footer className="relative bg-card border-t border-border/50">
+    <footer id="contact" className="relative bg-card border-t border-border/50">
       {/* Background Pattern */}
       <div className="absolute inset-0 cyber-grid opacity-20" />
       
@@ -69,15 +69,31 @@ const Footer = () => {
             <div className="space-y-2">
               <div className="flex items-center space-x-2 text-sm text-muted-foreground">
                 <Mail className="h-4 w-4 text-primary" />
-                <span>contact@legalai.com</span>
+                <a href="mailto:dosargaurang@gmail.com" className="hover:text-primary transition-colors">
+                  dosargaurang@gmail.com
+                </a>
               </div>
               <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                <Phone className="h-4 w-4 text-primary" />
-                <span>+1 (555) 123-4567</span>
+                <Linkedin className="h-4 w-4 text-primary" />
+                <a 
+                  href="https://www.linkedin.com/in/gaurangdosar/" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="hover:text-primary transition-colors"
+                >
+                  linkedin.com/in/gaurangdosar
+                </a>
               </div>
               <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-                <MapPin className="h-4 w-4 text-primary" />
-                <span>San Francisco, CA</span>
+                <Github className="h-4 w-4 text-primary" />
+                <a 
+                  href="https://github.com/GaurangDosar" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="hover:text-primary transition-colors"
+                >
+                  github.com/GaurangDosar
+                </a>
               </div>
             </div>
           </div>
@@ -113,21 +129,25 @@ const Footer = () => {
             {/* Social Links */}
             <div className="flex items-center space-x-4">
               <a 
-                href="#" 
+                href="mailto:dosargaurang@gmail.com" 
                 className="text-muted-foreground hover:text-primary transition-smooth hover:scale-110"
-                aria-label="Twitter"
+                aria-label="Email"
               >
-                <Twitter className="h-5 w-5" />
+                <Mail className="h-5 w-5" />
               </a>
               <a 
-                href="#" 
+                href="https://www.linkedin.com/in/gaurangdosar/" 
+                target="_blank"
+                rel="noopener noreferrer"
                 className="text-muted-foreground hover:text-primary transition-smooth hover:scale-110"
                 aria-label="LinkedIn"
               >
                 <Linkedin className="h-5 w-5" />
               </a>
               <a 
-                href="#" 
+                href="https://github.com/GaurangDosar" 
+                target="_blank"
+                rel="noopener noreferrer"
                 className="text-muted-foreground hover:text-primary transition-smooth hover:scale-110"
                 aria-label="GitHub"
               >

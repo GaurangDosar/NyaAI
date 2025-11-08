@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
@@ -26,7 +26,10 @@ import {
   Clock,
   Upload,
   Save,
-  Eye
+  Eye,
+  Paperclip,
+  FileText,
+  Download
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
@@ -98,11 +101,21 @@ const LawyerDashboard = () => {
   const [filteredCases, setFilteredCases] = useState<Case[]>([]);
   const [caseFilter, setCaseFilter] = useState<string>('all');
   const [selectedCase, setSelectedCase] = useState<Case | null>(null);
+  const [editingCase, setEditingCase] = useState(false);
+  const [caseForm, setCaseForm] = useState({ title: '', description: '', status: 'pending' });
   
   // Client requests state
   const [clientRequests, setClientRequests] = useState<ClientRequest[]>([]);
   const [selectedRequest, setSelectedRequest] = useState<ClientRequest | null>(null);
   const [acceptForm, setAcceptForm] = useState({ title: '', description: '' });
+  
+  // Messaging state (for active conversations)
+  const [activeConversations, setActiveConversations] = useState<any[]>([]);
+  const [selectedConversation, setSelectedConversation] = useState<any | null>(null);
+  const [newMessage, setNewMessage] = useState('');
+  const [hasNewMessages, setHasNewMessages] = useState(false);
+  const [uploadingFile, setUploadingFile] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   
   // Chart data
   const [casesByStatus, setCasesByStatus] = useState<any[]>([]);
@@ -171,6 +184,9 @@ const LawyerDashboard = () => {
         // Load client requests
         await loadClientRequests();
         
+        // Load active conversations
+        await loadActiveConversations();
+        
         console.log('LawyerDashboard - Data loading complete');
         setDataLoaded(true);
         
@@ -185,6 +201,99 @@ const LawyerDashboard = () => {
       loadLawyerData();
     }
   }, [user, userRole, dataLoaded]);
+
+  // Set up realtime subscription for new messages
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('lawyer-messages-channel')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+        },
+        (payload) => {
+          const newMessage = payload.new as any;
+          
+          // Check if message is from a client (not from lawyer themselves)
+          const isFromClient = newMessage.sender_id !== user.id;
+          
+          // Update active conversations with the new message
+          setActiveConversations((prev) => {
+            const convIndex = prev.findIndex(c => c.id === newMessage.conversation_id);
+            if (convIndex >= 0) {
+              const updated = [...prev];
+              
+              // Parse attachments if present
+              let attachments = undefined;
+              if (newMessage.attachments) {
+                try {
+                  const parsed = typeof newMessage.attachments === 'string' 
+                    ? JSON.parse(newMessage.attachments) 
+                    : newMessage.attachments;
+                  if (Array.isArray(parsed) && parsed.length > 0) {
+                    attachments = parsed;
+                  }
+                } catch (e) {
+                  console.error('Error parsing attachments:', e);
+                }
+              }
+              
+              updated[convIndex] = {
+                ...updated[convIndex],
+                messages: [...updated[convIndex].messages, {
+                  id: newMessage.id,
+                  text: newMessage.text,
+                  sender: newMessage.sender_id === user.id ? 'lawyer' : 'client',
+                  timestamp: new Date(newMessage.created_at),
+                  sender_id: newMessage.sender_id,
+                  attachments
+                }]
+              };
+              
+              // Show notification if message is from client
+              if (isFromClient) {
+                setHasNewMessages(true);
+                const caseTitle = updated[convIndex].caseTitle || 'A case';
+                toast({
+                  title: '💬 New Message',
+                  description: `${caseTitle}: ${newMessage.text.substring(0, 50)}${newMessage.text.length > 50 ? '...' : ''}`,
+                  duration: 5000,
+                });
+              }
+              
+              return updated;
+            }
+            return prev;
+          });
+          
+          // Also update selected conversation if it matches
+          setSelectedConversation(prev => {
+            if (prev && prev.id === newMessage.conversation_id) {
+              return {
+                ...prev,
+                messages: [...prev.messages, {
+                  id: newMessage.id,
+                  text: newMessage.text,
+                  sender: newMessage.sender_id === user.id ? 'lawyer' : 'client',
+                  timestamp: new Date(newMessage.created_at),
+                  sender_id: newMessage.sender_id
+                }]
+              };
+            }
+            return prev;
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
 
   const loadCases = async () => {
     if (!user) return;
@@ -244,19 +353,19 @@ const LawyerDashboard = () => {
         const clientIds = [...new Set(convData.map((c: any) => c.user_id))];
         const { data: clients } = await supabase
           .from('profiles')
-          .select('id, name, avatar_url, email')
-          .in('id', clientIds);
+          .select('id, user_id, name, avatar_url, email')
+          .in('user_id', clientIds);
         
         const convIds = convData.map((c: any) => c.id);
         const { data: messages } = await supabase
-          .from('lawyer_messages' as any)
+          .from('messages' as any)
           .select('*')
           .in('conversation_id', convIds)
           .order('created_at', { ascending: true });
         
         const formatted = convData.map((conv: any) => ({
           ...conv,
-          client: clients?.find((cl: any) => cl.id === conv.user_id) || {
+          client: clients?.find((cl: any) => cl.user_id === conv.user_id) || {
             name: 'Unknown',
             avatar_url: '',
             email: ''
@@ -270,6 +379,117 @@ const LawyerDashboard = () => {
       }
     } catch (error) {
       console.error('Error loading client requests:', error);
+    }
+  };
+
+  const loadActiveConversations = async () => {
+    if (!user) return;
+    
+    try {
+      // Load conversations with status 'active' (approved)
+      const { data: convData, error: convError } = await supabase
+        .from('conversations' as any)
+        .select('*')
+        .eq('lawyer_id', user.id)
+        .eq('status', 'active')
+        .order('last_message_at', { ascending: false });
+      
+      if (convError) {
+        console.error('Error fetching conversations:', convError);
+      }
+      
+      console.log('Conversations data:', convData);
+      
+      if (convData && convData.length > 0) {
+        const clientIds = [...new Set(convData.map((c: any) => c.user_id))];
+        const { data: clients, error: clientsError } = await supabase
+          .from('profiles')
+          .select('id, user_id, name, avatar_url, email')
+          .in('user_id', clientIds);
+        
+        if (clientsError) {
+          console.error('Error fetching clients:', clientsError);
+        }
+        
+        console.log('Fetched clients:', clients);
+        console.log('Client IDs:', clientIds);
+        
+        // Fetch cases to get the case title for each conversation
+        // Use the case_id from conversations to get the case details
+        const caseIds = convData
+          .map((c: any) => c.case_id)
+          .filter((id: any) => id !== null);
+        
+        const { data: casesData, error: casesError } = await supabase
+          .from('cases')
+          .select('id, title, client_id, lawyer_id')
+          .in('id', caseIds);
+        
+        if (casesError) {
+          console.error('Error fetching cases:', casesError);
+        }
+        
+        console.log('Fetched cases:', casesData);
+        
+        const convIds = convData.map((c: any) => c.id);
+        const { data: messages } = await supabase
+          .from('messages' as any)
+          .select('*')
+          .in('conversation_id', convIds)
+          .order('created_at', { ascending: true });
+        
+        const formatted = convData.map((conv: any) => {
+          const clientProfile = clients?.find((cl: any) => cl.user_id === conv.user_id);
+          const client = {
+            name: clientProfile?.name || clientProfile?.email?.split('@')[0] || 'Unknown User',
+            avatar_url: clientProfile?.avatar_url || '',
+            email: clientProfile?.email || '',
+            user_id: conv.user_id
+          };
+          
+          console.log('Conv user_id:', conv.user_id, 'Found profile:', clientProfile, 'Mapped client:', client);
+          
+          // Find the case associated with this conversation to get the title
+          const associatedCase = casesData?.find((c: any) => c.id === conv.case_id);
+          const caseTitle = associatedCase?.title || 'Untitled Case';
+          
+          const convMessages = messages?.filter((m: any) => m.conversation_id === conv.id).map((m: any) => {
+            // Parse attachments
+            let attachments = undefined;
+            if (m.attachments) {
+              try {
+                const parsed = typeof m.attachments === 'string' ? JSON.parse(m.attachments) : m.attachments;
+                if (Array.isArray(parsed) && parsed.length > 0) {
+                  attachments = parsed;
+                }
+              } catch (e) {
+                console.error('Error parsing attachments:', e);
+              }
+            }
+            
+            return {
+              id: m.id,
+              text: m.text,
+              sender: m.sender_id === user.id ? 'lawyer' : 'client',
+              timestamp: new Date(m.created_at),
+              sender_id: m.sender_id,
+              attachments
+            };
+          }) || [];
+          
+          return {
+            ...conv,
+            client,
+            caseTitle, // Add case title to conversation object
+            messages: convMessages,
+            unreadCount: 0 // Could add logic to count unread messages
+          };
+        });
+        
+        setActiveConversations(formatted);
+      }
+    } catch (error) {
+      console.error('Error loading active conversations:', error);
     }
   };
 
@@ -367,6 +587,47 @@ const LawyerDashboard = () => {
     }
   };
 
+  const handleUpdateCaseDetails = async () => {
+    if (!selectedCase || !caseForm.title || !caseForm.description) {
+      toast({
+        title: 'Missing Information',
+        description: 'Please fill in all required fields',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('cases' as any)
+        .update({
+          title: caseForm.title,
+          description: caseForm.description,
+          status: caseForm.status,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', selectedCase.id);
+      
+      if (error) throw error;
+      
+      toast({
+        title: 'Success',
+        description: 'Case details updated successfully',
+      });
+      
+      setEditingCase(false);
+      setSelectedCase(null);
+      await loadCases();
+    } catch (error) {
+      console.error('Error updating case details:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update case details',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const handleAcceptRequest = async (request: ClientRequest) => {
     if (!acceptForm.title || !acceptForm.description) {
       toast({
@@ -452,6 +713,134 @@ const LawyerDashboard = () => {
     }
   };
 
+  const handleSendLawyerMessage = async (conversationId: string, attachments: any[] = []) => {
+    if ((!newMessage.trim() && attachments.length === 0) || !user) return;
+    
+    try {
+      const session = await supabase.auth.getSession();
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-message`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.data.session?.access_token}`,
+          },
+          body: JSON.stringify({
+            lawyer_id: user.id, // Even though we're the lawyer, we need to pass this
+            text: newMessage,
+            attachments: attachments,
+            is_case_request: false,
+            conversation_id: conversationId // Add this to identify existing conversation
+          }),
+        }
+      );
+      
+      if (!response.ok) throw new Error('Failed to send message');
+      
+      setNewMessage('');
+      toast({
+        title: 'Message Sent',
+        description: 'Your message has been sent successfully',
+      });
+      
+      // Reload conversations to get the new message
+      await loadActiveConversations();
+      
+      // Update selected conversation if it's open
+      if (selectedConversation && selectedConversation.id === conversationId) {
+        const updated = activeConversations.find(c => c.id === conversationId);
+        if (updated) {
+          setSelectedConversation(updated);
+        }
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to send message',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (!files || files.length === 0 || !selectedConversation || !user) return;
+
+    // Validate file size (10MB max per file)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    const validFiles = Array.from(files).filter(file => {
+      if (file.size > maxSize) {
+        toast({
+          variant: "destructive",
+          title: "File Too Large",
+          description: `${file.name} exceeds 10MB limit`,
+        });
+        return false;
+      }
+      return true;
+    });
+
+    if (validFiles.length === 0) return;
+
+    setUploadingFile(true);
+
+    try {
+      const uploadedFiles = [];
+      
+      for (const file of validFiles) {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${user.id}/${selectedConversation.client.user_id}/${Date.now()}_${Math.random().toString(36).substring(7)}.${fileExt}`;
+
+        const { data, error } = await supabase.storage
+          .from('lawyer-chat-attachments')
+          .upload(fileName, file);
+
+        if (error) {
+          console.error('Error uploading file:', error);
+          toast({
+            variant: "destructive",
+            title: "Upload Failed",
+            description: `Failed to upload ${file.name}`,
+          });
+          continue;
+        }
+
+        const { data: urlData } = supabase.storage
+          .from('lawyer-chat-attachments')
+          .getPublicUrl(fileName);
+
+        uploadedFiles.push({
+          name: file.name,
+          url: urlData.publicUrl,
+          type: file.type,
+        });
+      }
+
+      if (uploadedFiles.length > 0) {
+        await handleSendLawyerMessage(selectedConversation.id, uploadedFiles);
+        toast({
+          title: "Files Uploaded",
+          description: `${uploadedFiles.length} file(s) sent successfully`,
+        });
+      }
+    } catch (error: any) {
+      console.error('Error in file upload:', error);
+      toast({
+        variant: "destructive",
+        title: "Upload Error",
+        description: error.message || "Failed to upload files",
+      });
+    } finally {
+      setUploadingFile(false);
+      // Reset file input
+      if (event.target) {
+        event.target.value = '';
+      }
+    }
+  };
+
   const handleSaveProfile = async () => {
     if (!user) return;
     
@@ -461,12 +850,11 @@ const LawyerDashboard = () => {
       // Upload avatar if a new file is selected
       if (avatarFile) {
         const fileExt = avatarFile.name.split('.').pop();
-        const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-        const filePath = `avatars/${fileName}`;
+        const fileName = `${user.id}/${Date.now()}.${fileExt}`;
         
         const { error: uploadError } = await supabase.storage
           .from('avatars')
-          .upload(filePath, avatarFile, { upsert: true });
+          .upload(fileName, avatarFile, { upsert: true });
         
         if (uploadError) {
           console.error('Error uploading avatar:', uploadError);
@@ -478,7 +866,7 @@ const LawyerDashboard = () => {
         } else {
           const { data: { publicUrl } } = supabase.storage
             .from('avatars')
-            .getPublicUrl(filePath);
+            .getPublicUrl(fileName);
           
           avatarUrl = publicUrl;
         }
@@ -593,9 +981,17 @@ const LawyerDashboard = () => {
       <Navigation />
       
       <div className="container mx-auto px-4 py-24">
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">Lawyer Dashboard</h1>
-          <p className="text-muted-foreground">Welcome back, {profile?.name || 'Lawyer'}!</p>
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="text-4xl font-bold mb-2">Lawyer Dashboard</h1>
+            <p className="text-muted-foreground">Welcome back, {profile?.name || 'Lawyer'}!</p>
+          </div>
+          {hasNewMessages && (
+            <div className="flex items-center gap-2 px-4 py-2 bg-primary/10 border border-primary/20 rounded-lg animate-pulse">
+              <MessageSquare className="h-5 w-5 text-primary" />
+              <span className="text-sm font-medium text-primary">New messages waiting</span>
+            </div>
+          )}
         </div>
 
         <Tabs defaultValue="overview" className="space-y-6">
@@ -603,6 +999,17 @@ const LawyerDashboard = () => {
             <TabsTrigger value="overview">Overview</TabsTrigger>
             <TabsTrigger value="cases">Cases</TabsTrigger>
             <TabsTrigger value="requests">Client Requests ({clientRequests.length})</TabsTrigger>
+            <TabsTrigger value="messages" onClick={() => setHasNewMessages(false)}>
+              <span className="flex items-center gap-2">
+                Messages ({activeConversations.length})
+                {hasNewMessages && (
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                  </span>
+                )}
+              </span>
+            </TabsTrigger>
             <TabsTrigger value="profile">Profile</TabsTrigger>
           </TabsList>
 
@@ -927,6 +1334,198 @@ const LawyerDashboard = () => {
             </div>
           </TabsContent>
 
+          {/* Messages Tab */}
+          <TabsContent value="messages" className="space-y-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Conversations List */}
+              <Card className="lg:col-span-1">
+                <CardHeader>
+                  <CardTitle>Active Conversations</CardTitle>
+                  <CardDescription>{activeConversations.length} conversations</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {activeConversations.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <MessageSquare className="h-12 w-12 mx-auto mb-3 opacity-30" />
+                      <p className="text-sm">No active conversations</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {activeConversations.map((conv) => (
+                        <button
+                          key={conv.id}
+                          onClick={() => setSelectedConversation(conv)}
+                          className={`w-full p-3 rounded-lg border transition-colors text-left ${
+                            selectedConversation?.id === conv.id
+                              ? 'bg-primary/10 border-primary'
+                              : 'hover:bg-accent border-transparent'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <Avatar>
+                              <AvatarImage src={conv.client.avatar_url} />
+                              <AvatarFallback>
+                                {conv.client.name.split(' ').map((n: string) => n[0]).join('')}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-semibold text-sm truncate">{conv.caseTitle}</p>
+                              <p className="text-xs text-muted-foreground truncate">
+                                Client: {conv.client.name}
+                              </p>
+                              <p className="text-xs text-muted-foreground truncate">
+                                {conv.messages.length > 0
+                                  ? conv.messages[conv.messages.length - 1].text
+                                  : 'No messages yet'}
+                              </p>
+                            </div>
+                            {conv.unreadCount > 0 && (
+                              <Badge className="bg-primary">{conv.unreadCount}</Badge>
+                            )}
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+
+              {/* Chat Window */}
+              <Card className="lg:col-span-2">
+                <CardHeader>
+                  <div className="flex items-center gap-3">
+                    {selectedConversation ? (
+                      <>
+                        <Avatar>
+                          <AvatarImage src={selectedConversation.client.avatar_url} />
+                          <AvatarFallback>
+                            {selectedConversation.client.name.split(' ').map((n: string) => n[0]).join('')}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <CardTitle className="text-lg">{selectedConversation.caseTitle}</CardTitle>
+                          <CardDescription>Client: {selectedConversation.client.name} ({selectedConversation.client.email})</CardDescription>
+                        </div>
+                      </>
+                    ) : (
+                      <CardTitle>Select a conversation</CardTitle>
+                    )}
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {selectedConversation ? (
+                    <div className="space-y-4">
+                      {/* Messages Area */}
+                      <div className="h-[400px] overflow-y-auto bg-muted/30 rounded-lg p-4 space-y-3">
+                        {selectedConversation.messages.length === 0 ? (
+                          <div className="text-center py-12 text-muted-foreground">
+                            <MessageSquare className="h-10 w-10 mx-auto mb-2 opacity-30" />
+                            <p className="text-sm">No messages yet</p>
+                          </div>
+                        ) : (
+                          selectedConversation.messages.map((msg: any, idx: number) => (
+                            <div
+                              key={idx}
+                              className={`flex ${msg.sender === 'lawyer' ? 'justify-end' : 'justify-start'}`}
+                            >
+                              <div
+                                className={`max-w-[75%] rounded-2xl px-4 py-2 ${
+                                  msg.sender === 'lawyer'
+                                    ? 'bg-primary text-primary-foreground'
+                                    : 'bg-card border'
+                                }`}
+                              >
+                                <p className="text-sm">{msg.text}</p>
+                                
+                                {/* Display attachments if any */}
+                                {msg.attachments && msg.attachments.length > 0 && (
+                                  <div className="mt-2 space-y-2">
+                                    {msg.attachments.map((attachment: any, attIdx: number) => (
+                                      <a
+                                        key={attIdx}
+                                        href={attachment.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className={`flex items-center gap-2 p-2 rounded-lg transition-colors ${
+                                          msg.sender === 'lawyer'
+                                            ? 'bg-primary-foreground/10 hover:bg-primary-foreground/20'
+                                            : 'bg-muted/50 hover:bg-muted'
+                                        }`}
+                                      >
+                                        <FileText className="h-4 w-4 flex-shrink-0" />
+                                        <span className="text-xs flex-1 truncate">
+                                          {attachment.name}
+                                        </span>
+                                        <Download className="h-3 w-3 flex-shrink-0" />
+                                      </a>
+                                    ))}
+                                  </div>
+                                )}
+                                
+                                <p className="text-xs opacity-70 mt-1">
+                                  {new Date(msg.timestamp).toLocaleTimeString()}
+                                </p>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+
+                      {/* Message Input */}
+                      <div className="flex gap-2">
+                        {/* Hidden file input */}
+                        <input
+                          type="file"
+                          ref={fileInputRef}
+                          onChange={handleFileUpload}
+                          multiple
+                          accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png,.gif"
+                          className="hidden"
+                        />
+                        
+                        {/* Paperclip button */}
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => fileInputRef.current?.click()}
+                          disabled={uploadingFile}
+                          title="Attach files"
+                        >
+                          <Paperclip className="h-4 w-4" />
+                        </Button>
+                        
+                        <Input
+                          placeholder={uploadingFile ? "Uploading files..." : "Type your message..."}
+                          value={newMessage}
+                          onChange={(e) => setNewMessage(e.target.value)}
+                          disabled={uploadingFile}
+                          onKeyPress={(e) => {
+                            if (e.key === 'Enter' && newMessage.trim()) {
+                              handleSendLawyerMessage(selectedConversation.id);
+                            }
+                          }}
+                        />
+                        <Button
+                          onClick={() => handleSendLawyerMessage(selectedConversation.id)}
+                          disabled={!newMessage.trim() || uploadingFile}
+                        >
+                          Send
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="h-[400px] flex items-center justify-center text-muted-foreground">
+                      <div className="text-center">
+                        <MessageSquare className="h-16 w-16 mx-auto mb-4 opacity-30" />
+                        <p>Select a conversation to start messaging</p>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
           {/* Profile Tab */}
           <TabsContent value="profile" className="space-y-6">
             <Card>
@@ -1080,10 +1679,33 @@ const LawyerDashboard = () => {
       </div>
 
       {/* Case Details Dialog */}
-      <Dialog open={!!selectedCase} onOpenChange={() => setSelectedCase(null)}>
+      <Dialog open={!!selectedCase} onOpenChange={() => {
+        setSelectedCase(null);
+        setEditingCase(false);
+        setCaseForm({ title: '', description: '', status: 'pending' });
+      }}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Case Details</DialogTitle>
+            <div className="flex items-center justify-between">
+              <DialogTitle>Case Details</DialogTitle>
+              {!editingCase && selectedCase && (
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    setEditingCase(true);
+                    setCaseForm({
+                      title: selectedCase.title,
+                      description: selectedCase.description,
+                      status: selectedCase.status
+                    });
+                  }}
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  Edit Details
+                </Button>
+              )}
+            </div>
           </DialogHeader>
           {selectedCase && (
             <div className="space-y-4">
@@ -1094,23 +1716,62 @@ const LawyerDashboard = () => {
                     {selectedCase.client.name.split(' ').map(n => n[0]).join('')}
                   </AvatarFallback>
                 </Avatar>
-                <div>
-                  <h3 className="font-semibold text-lg">{selectedCase.title}</h3>
-                  <p className="text-sm text-muted-foreground">{selectedCase.client.name}</p>
+                <div className="flex-1">
+                  {editingCase ? (
+                    <Input
+                      value={caseForm.title}
+                      onChange={(e) => setCaseForm(prev => ({ ...prev, title: e.target.value }))}
+                      placeholder="Case title"
+                      className="font-semibold"
+                    />
+                  ) : (
+                    <>
+                      <h3 className="font-semibold text-lg">{selectedCase.title}</h3>
+                      <p className="text-sm text-muted-foreground">{selectedCase.client.name}</p>
+                    </>
+                  )}
                 </div>
-                <Badge className="ml-auto" variant={
-                  selectedCase.status === 'won' ? 'default' :
-                  selectedCase.status === 'active' ? 'secondary' :
-                  selectedCase.status === 'lost' ? 'destructive' :
-                  'outline'
-                }>
-                  {selectedCase.status}
-                </Badge>
+                {editingCase ? (
+                  <Select
+                    value={caseForm.status}
+                    onValueChange={(value) => setCaseForm(prev => ({ ...prev, status: value }))}
+                  >
+                    <SelectTrigger className="w-[140px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="won">Won</SelectItem>
+                      <SelectItem value="lost">Lost</SelectItem>
+                      <SelectItem value="closed">Closed</SelectItem>
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Badge className="ml-auto" variant={
+                    selectedCase.status === 'won' ? 'default' :
+                    selectedCase.status === 'active' ? 'secondary' :
+                    selectedCase.status === 'lost' ? 'destructive' :
+                    'outline'
+                  }>
+                    {selectedCase.status}
+                  </Badge>
+                )}
               </div>
               
               <div>
                 <Label>Description</Label>
-                <p className="mt-1 text-sm">{selectedCase.description}</p>
+                {editingCase ? (
+                  <Textarea
+                    value={caseForm.description}
+                    onChange={(e) => setCaseForm(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="Case description"
+                    rows={4}
+                    className="mt-1"
+                  />
+                ) : (
+                  <p className="mt-1 text-sm">{selectedCase.description}</p>
+                )}
               </div>
               
               <div className="grid grid-cols-2 gap-4">
@@ -1128,6 +1789,24 @@ const LawyerDashboard = () => {
                 <Label>Last Updated</Label>
                 <p className="text-sm">{new Date(selectedCase.updated_at).toLocaleString()}</p>
               </div>
+
+              {editingCase && (
+                <div className="flex gap-2 pt-4 border-t">
+                  <Button onClick={handleUpdateCaseDetails}>
+                    <Save className="h-4 w-4 mr-2" />
+                    Save Changes
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setEditingCase(false);
+                      setCaseForm({ title: '', description: '', status: 'pending' });
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </DialogContent>
