@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 import { 
   User, Mail, Phone, MapPin, Edit2, Save, X, 
   MessageSquare, Award, FileText, TrendingUp, 
@@ -20,6 +21,7 @@ interface AnalyticsData {
   totalChats: number;
   totalMessages: number;
   schemesViewed: number;
+  schemesSaved: number;
   recentActivity: {
     type: string;
     message: string;
@@ -28,16 +30,30 @@ interface AnalyticsData {
   chatsByDay: { day: string; count: number }[];
 }
 
+interface SavedScheme {
+  id: string;
+  scheme_name: string;
+  scheme_description: string;
+  scheme_category: string;
+  scheme_state: string;
+  scheme_benefits: string;
+  scheme_official_website: string | null;
+  created_at: string;
+}
+
 const Dashboard = () => {
   const { user, profile, loading, updateProfile } = useAuth();
+  const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const [analytics, setAnalytics] = useState<AnalyticsData>({
     totalChats: 0,
     totalMessages: 0,
     schemesViewed: 0,
+    schemesSaved: 0,
     recentActivity: [],
     chatsByDay: []
   });
+  const [savedSchemes, setSavedSchemes] = useState<SavedScheme[]>([]);
   const [loadingAnalytics, setLoadingAnalytics] = useState(true);
   const [loadingTimeout, setLoadingTimeout] = useState(false);
   const [formData, setFormData] = useState({
@@ -97,6 +113,16 @@ const Dashboard = () => {
 
       if (messagesError) console.error('Messages error:', messagesError);
 
+      // Fetch saved schemes
+      const { data: schemes, error: schemesError } = await supabase
+        .from('saved_schemes')
+        .select('*')
+        .eq('user_id', user?.id)
+        .order('created_at', { ascending: false });
+
+      if (schemesError) console.error('Saved schemes error:', schemesError);
+      setSavedSchemes(schemes || []);
+
       // Fetch scheme applications (if table exists)
       let schemesCount = 0;
       try {
@@ -132,13 +158,19 @@ const Dashboard = () => {
           type: 'chat',
           message: s.title || 'New chat session',
           timestamp: s.created_at
+        })) || []),
+        ...(schemes?.slice(0, 2).map((s: SavedScheme) => ({
+          type: 'scheme',
+          message: `Saved: ${s.scheme_name}`,
+          timestamp: s.created_at
         })) || [])
-      ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      ].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()).slice(0, 5);
 
       setAnalytics({
         totalChats: sessions?.length || 0,
         totalMessages: messages?.length || 0,
         schemesViewed: schemesCount,
+        schemesSaved: schemes?.length || 0,
         recentActivity,
         chatsByDay
       });
@@ -189,9 +221,39 @@ const Dashboard = () => {
   const handleSave = async () => {
     try {
       await updateProfile(formData);
+      
+      // Refresh profile data after update
+      if (user) {
+        const { data: updatedProfile } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+        
+        if (updatedProfile) {
+          // Update local form data with the saved values
+          setFormData({
+            name: updatedProfile.name || '',
+            email: updatedProfile.email || '',
+            phone: updatedProfile.phone || '',
+            location: updatedProfile.location || ''
+          });
+        }
+      }
+      
       setIsEditing(false);
+      
+      toast({
+        title: "Profile Updated",
+        description: "Your profile has been successfully updated",
+      });
     } catch (error) {
       console.error('Failed to update profile:', error);
+      toast({
+        title: "Update Failed",
+        description: error instanceof Error ? error.message : "Failed to update profile",
+        variant: "destructive",
+      });
     }
   };
 
@@ -292,8 +354,8 @@ const Dashboard = () => {
               <CardContent className="pt-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">Schemes Viewed</p>
-                    <p className="text-3xl font-bold mt-2">{analytics.schemesViewed}</p>
+                    <p className="text-sm font-medium text-muted-foreground">Schemes Saved</p>
+                    <p className="text-3xl font-bold mt-2">{analytics.schemesSaved}</p>
                     <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
                       <CheckCircle2 className="h-3 w-3" />
                       Government Programs
@@ -400,6 +462,85 @@ const Dashboard = () => {
               </CardContent>
             </Card>
           </div>
+
+          {/* Saved Schemes Section */}
+          {savedSchemes.length > 0 && (
+            <Card className="glass mb-8">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <Award className="h-5 w-5" />
+                      Saved Schemes
+                    </CardTitle>
+                    <CardDescription>Government schemes you've saved for later</CardDescription>
+                  </div>
+                  <Badge variant="secondary">{savedSchemes.length} Saved</Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {loadingAnalytics ? (
+                  <div className="h-48 flex items-center justify-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {savedSchemes.map((scheme) => (
+                      <div 
+                        key={scheme.id} 
+                        className="p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors border border-border"
+                      >
+                        <div className="flex items-start justify-between gap-4 mb-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              {scheme.scheme_category && (
+                                <Badge variant="secondary">{scheme.scheme_category}</Badge>
+                              )}
+                              {scheme.scheme_state && (
+                                <Badge variant="outline">{scheme.scheme_state}</Badge>
+                              )}
+                            </div>
+                            <h3 className="font-semibold text-lg mb-2">{scheme.scheme_name}</h3>
+                            <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                              {scheme.scheme_description}
+                            </p>
+                            {scheme.scheme_benefits && (
+                              <div className="flex items-start gap-2 text-sm">
+                                <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
+                                <p className="text-muted-foreground line-clamp-2">{scheme.scheme_benefits}</p>
+                              </div>
+                            )}
+                          </div>
+                          <div className="text-right flex-shrink-0">
+                            <p className="text-xs text-muted-foreground flex items-center gap-1">
+                              <Calendar className="h-3 w-3" />
+                              {new Date(scheme.created_at).toLocaleDateString('en-US', { 
+                                month: 'short', 
+                                day: 'numeric' 
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                        {scheme.scheme_official_website && scheme.scheme_official_website !== 'Visit nearest government office' && (
+                          <div className="pt-3 border-t">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="w-full"
+                              onClick={() => window.open(scheme.scheme_official_website, '_blank')}
+                            >
+                              <ArrowRight className="mr-2 h-4 w-4" />
+                              Visit Official Website
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Profile Section */}
           <Card className="glass">

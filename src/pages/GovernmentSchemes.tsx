@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import { Award, Search, CheckCircle2, FileText, Calendar, IndianRupee, User, MapPin, Briefcase, Loader2, Sparkles } from 'lucide-react';
+import { Award, Search, CheckCircle2, FileText, Calendar, IndianRupee, User, MapPin, Briefcase, Loader2, Sparkles, Bookmark, BookmarkCheck } from 'lucide-react';
 
 interface Scheme {
   id: string;
@@ -35,6 +35,8 @@ const GovernmentSchemes = () => {
   const [schemes, setSchemes] = useState<Scheme[]>([]);
   const [totalEligible, setTotalEligible] = useState(0);
   const [showResults, setShowResults] = useState(false);
+  const [savingScheme, setSavingScheme] = useState<string | null>(null);
+  const [savedSchemeIds, setSavedSchemeIds] = useState<Set<string>>(new Set());
   
   const [formData, setFormData] = useState({
     applicantName: profile?.name || '',
@@ -123,6 +125,74 @@ const GovernmentSchemes = () => {
       });
     } finally {
       setSearching(false);
+    }
+  };
+
+  const handleSaveScheme = async (scheme: Scheme) => {
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to save schemes",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setSavingScheme(scheme.id);
+
+    try {
+      // Check if already saved
+      const { data: existing } = await supabase
+        .from('saved_schemes')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('scheme_name', scheme.name)
+        .single();
+
+      if (existing) {
+        toast({
+          title: "Already Saved",
+          description: "This scheme is already in your saved list",
+        });
+        setSavedSchemeIds(prev => new Set(prev).add(scheme.id));
+        return;
+      }
+
+      // Save the scheme
+      const { error } = await supabase
+        .from('saved_schemes')
+        .insert({
+          user_id: user.id,
+          scheme_name: scheme.name,
+          scheme_description: scheme.description,
+          scheme_benefits: scheme.benefits,
+          scheme_category: scheme.category,
+          scheme_state: scheme.state,
+          scheme_eligibility: scheme.eligibility,
+          scheme_how_to_apply: scheme.howToApply,
+          scheme_documents: scheme.documents,
+          scheme_deadline: scheme.deadline,
+          scheme_official_website: scheme.officialWebsite,
+          personalized_reason: scheme.personalizedReason
+        });
+
+      if (error) throw error;
+
+      setSavedSchemeIds(prev => new Set(prev).add(scheme.id));
+      
+      toast({
+        title: "Scheme Saved!",
+        description: "You can view this scheme in your dashboard",
+      });
+    } catch (error) {
+      console.error('Error saving scheme:', error);
+      toast({
+        title: "Failed to Save",
+        description: error instanceof Error ? error.message : 'Failed to save scheme',
+        variant: "destructive"
+      });
+    } finally {
+      setSavingScheme(null);
     }
   };
 
@@ -539,8 +609,28 @@ const GovernmentSchemes = () => {
                               Visit Official Website
                             </Button>
                           )}
-                          <Button variant="outline" className="flex-1">
-                            Save Scheme
+                          <Button 
+                            variant="outline" 
+                            className="flex-1"
+                            onClick={() => handleSaveScheme(scheme)}
+                            disabled={savingScheme === scheme.id || savedSchemeIds.has(scheme.id)}
+                          >
+                            {savingScheme === scheme.id ? (
+                              <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                Saving...
+                              </>
+                            ) : savedSchemeIds.has(scheme.id) ? (
+                              <>
+                                <BookmarkCheck className="mr-2 h-4 w-4" />
+                                Saved
+                              </>
+                            ) : (
+                              <>
+                                <Bookmark className="mr-2 h-4 w-4" />
+                                Save Scheme
+                              </>
+                            )}
                           </Button>
                         </div>
                       </CardContent>
