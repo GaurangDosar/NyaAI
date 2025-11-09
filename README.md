@@ -28,7 +28,7 @@ A modern, full-stack legal technology platform that connects clients with lawyer
 - **👤 Profile Management**: Update professional information and avatar
 
 ### Core Technologies
-- **Frontend**: React 18 + TypeScript + Vite
+- **Frontend**: React 18 + TypeScript + Vite (**Note that the base frontend is generated through Lovable AI**)
 - **UI Framework**: TailwindCSS + Shadcn/ui components
 - **Backend**: Supabase (PostgreSQL + Edge Functions)
 - **Authentication**: Supabase Auth with Row Level Security (RLS)
