@@ -247,12 +247,6 @@ Compatible with Vercel, Netlify, GitHub Pages, AWS Amplify
 - **Recharts** - Data visualization
 - **TailwindCSS** - Styling framework
 
-## 📚 Documentation
-
-- [Messaging Workflow](./MESSAGING_WORKFLOW_UPDATE.md)
-- [Lawyer Messaging Implementation](./LAWYER_MESSAGING_IMPLEMENTATION_SUMMARY.md)
-- [File Attachments](./LAWYER_FILE_ATTACHMENTS_COMPLETE.md)
-- [Migration Guide](./RUN_LAWYER_MESSAGING_MIGRATIONS.md)
 
 ## 🎯 Roadmap
 
